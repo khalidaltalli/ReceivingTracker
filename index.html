@@ -221,7 +221,7 @@
   <div style="position:fixed;bottom:1.5rem;right:1.5rem;background:#1a1f2e;border:0.5px solid rgba(74,222,128,0.3);color:#4ade80;font-size:12px;padding:8px 16px;border-radius:8px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:200;" id="save-toast">✓ Saved</div>
 
   <script>
-    const APPS_URL = 'https://script.google.com/macros/s/AKfycbxNnKVZZP4nhRgXX_yyP6L6sMfgnr7fqyW-4qG9P-mDhypy9hgB8ow0EpUaKoZCvLrOzQ/exec';
+    const APPS_URL = 'https://script.google.com/macros/s/AKfycbyXMNhT-y0fQlFGG20lx_fD-47N39O5BvUl9QfMukrEyP0jnl8ckGCyS_ZUOphGfZ2Pww/exec';
 
     /* ── User Session ── */
     const PINS = { Khalid:'6969', Azhar:'0000', Eissa:'1234' };
@@ -996,7 +996,12 @@
         <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1.25rem;background:rgba(255,255,255,0.03);border-bottom:0.5px solid rgba(255,255,255,0.07);cursor:pointer;" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';this.querySelector('.ci').style.transform=b.style.display==='none'?'rotate(-90deg)':'rotate(0deg)'">
           <div style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;flex-wrap:wrap;">
             <span style="color:#ffffff;font-weight:700;">${branch.code}</span>
-            <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${tagCls}18;color:${tagCls};font-weight:600;">${branch.status}</span>
+            <select onchange="updateBranchStatus('${branch.code}',this)"
+              style="font-size:10px;padding:2px 8px;border-radius:10px;background:${tagCls}18;color:${tagCls};font-weight:600;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;outline:none;">
+              <option value="Receiving" ${branch.status==='Receiving'?'selected':''}>Receiving</option>
+              <option value="Live"      ${branch.status==='Live'     ?'selected':''}>Live</option>
+              <option value="Pending"   ${branch.status==='Pending'  ?'selected':''}>Pending</option>
+            </select>
             <span class="pill pill-received">${rec} Received</span>
             ${del>0?`<span class="pill pill-delivered">${del} Delivered</span>`:''}
             <span class="pill pill-not-received">${nr} Not Received</span>
@@ -1263,12 +1268,18 @@
       }
       const btn=document.getElementById('add-branch-btn');
       btn.textContent='Adding...';btn.disabled=true;
-      const res=await fetch(APPS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'addBranch',branchCode:code,branchStatus:status})});
-      const data=await res.json();
-      btn.textContent='Add Branch';btn.disabled=false;
-      if(data.error){alert('Error: '+data.error);return;}
-      closeAddBranch();showSaveToast('Branch added!');
-      await Promise.all([loadAll(),loadTracker()]);
+      try {
+        await fetch(APPS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'addBranch',branchCode:code,branchStatus:status})});
+        /* Wait a moment for sheet to update then reload */
+        await new Promise(r => setTimeout(r, 2000));
+        closeAddBranch();
+        showSaveToast('Branch added! Refreshing...');
+        await Promise.all([loadAll(),loadTracker()]);
+      } catch(e) {
+        alert('Error adding branch: ' + e.message);
+      } finally {
+        btn.textContent='Add Branch';btn.disabled=false;
+      }
     }
 
     let toastTimer;
@@ -1312,6 +1323,25 @@
         target.style.outline = '2px solid #22d3ee';
         setTimeout(() => target.style.outline = '', 2000);
       }
+    }
+
+    /* ── Update Branch Status ── */
+    async function updateBranchStatus(branchCode, sel) {
+      const newStatus = sel.value;
+      const tagColors = { Receiving:'#22d3ee', Live:'#4ade80', Pending:'#fbbf24' };
+      const c = tagColors[newStatus] || '#94a3b8';
+      sel.style.background = c + '18';
+      sel.style.color = c;
+      /* Update local data */
+      trackerBranches = trackerBranches.map(b => b.code === branchCode ? {...b, status: newStatus} : b);
+      /* Save to sheet */
+      await fetch(APPS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'updateBranchStatus', branch: branchCode, status: newStatus }) });
+      /* Log */
+      const ts = new Date().toLocaleString('en-GB');
+      await fetch(APPS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'logEdit', user: currentUser||'Unknown', branch: branchCode, asset: '-', field: 'Branch Status', value: newStatus, timestamp: ts }) });
+      showSaveToast('Branch status updated to ' + newStatus);
     }
 
     /* ── Task List ── */
