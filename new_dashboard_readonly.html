@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>New Store Asset Receiving — View Only</title>
+  <title>New Store Asset Receiving</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -102,6 +102,11 @@
 </head>
 <body>
 
+  <!-- Logo -->
+  <div style="text-align:center;padding:1rem 0 0.5rem;border-bottom:0.5px solid rgba(255,255,255,0.06);margin-bottom:1rem;">
+    <img src="logo.png" style="height:80px;object-fit:contain;" alt="Space Planning & Store Improvement" />
+  </div>
+
   <!-- Nav Bar -->
   <div class="nav-bar">
     <button class="nav-btn active" id="nav-dashboard" onclick="switchPage('dashboard')">📊 Dashboard</button>
@@ -112,7 +117,7 @@
   <div id="page-dashboard">
   <div class="header">
     <div>
-      <h1>New Store Asset Receiving - View Only</h1>
+      <h1>New Store Asset Receiving</h1>
       <p id="last-updated">Connecting...</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
@@ -232,7 +237,7 @@
   <!-- Tracker Page (embedded) -->
   <div id="page-tracker" style="display:none;">
     <div class="header">
-      <div><h1>Asset Tracking — View Only</h1><p id="tracker-updated">Connecting...</p></div>
+      <div><h1>Asset Tracking</h1><p id="tracker-updated">Connecting...</p></div>
       <div style="display:flex;gap:8px;align-items:center;">
         <div class="live-badge"><div class="live-dot"></div> Live</div>
         
