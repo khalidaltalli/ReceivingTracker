@@ -10,7 +10,22 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'DM Sans', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; padding: 1.5rem; }
+    body { font-family: 'DM Sans', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; padding: 1.5rem; transition: background 0.3s, color 0.3s; }
+    body.light { background: #f8fafc; color: #1e293b; }
+    body.light .branch-card,
+    body.light .table-card,
+    body.light .chart-card,
+    body.light .kpi-card { background: #ffffff; border-color: rgba(0,0,0,0.08); }
+    body.light select,
+    body.light .cell-select { background: #f1f5f9; border-color: rgba(0,0,0,0.15); color: #1e293b; }
+    body.light table td,
+    body.light table th { color: #1e293b; border-color: rgba(0,0,0,0.1); }
+    body.light tbody tr:nth-child(odd) td  { background: rgba(0,0,0,0.02); }
+    body.light tbody tr:nth-child(even) td { background: rgba(0,0,0,0.04); }
+    body.light tbody tr:hover td { background: rgba(0,0,0,0.08); }
+    body.light .nav-bar { background: #e2e8f0; border-color: rgba(0,0,0,0.1); }
+    body.light .nav-btn { color: #64748b; }
+    body.light .nav-btn.active { background: #ffffff; color: #1e293b; }
 
     /* ── Header ── */
     .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:0.5px solid rgba(255,255,255,0.08); }
@@ -157,6 +172,7 @@
         <span id="user-badge" style="display:none;font-size:11px;padding:4px 10px;border-radius:10px;" class="user-badge"></span>
         <button class="btn" style="background:rgba(248,113,113,0.08);border:0.5px solid rgba(248,113,113,0.2);color:#f87171;font-size:11px;" onclick="sessionStorage.removeItem('tracker_user');location.reload()">Sign Out</button>
         <button class="btn" style="background:rgba(74,222,128,0.08);border:0.5px solid rgba(74,222,128,0.2);color:#4ade80;" onclick="openAddBranch()">+ Add Branch</button>
+        <button class="btn" onclick="toggleMode()" id="mode-btn" title="Toggle light/dark mode">🌙</button>
         <button class="btn" onclick="loadTracker()">↻ Refresh</button>
       </div>
     </div>
@@ -949,8 +965,9 @@
         trackerData.forEach(r => {
           const b=(r['Branch Code']||'').trim(), bs=(r['Branch Status']||'').trim();
           if(b&&!seen.has(b)){seen.add(b);trackerBranches.push({code:b,status:bs});}
+          if(b&&!seen.has(b)){seen.add(b);trackerBranches.push({code:b,status:bs});}
         });
-
+        trackerBranches.sort((a,b) => a.code.localeCompare(b.code));
         const tBranchSel = document.getElementById('t-branch-filter');
         const cur = tBranchSel.value;
         tBranchSel.innerHTML = '<option value="ALL">All</option>' + trackerBranches.map(b=>`<option value="${b.code}">${b.code}</option>`).join('');
@@ -1132,8 +1149,8 @@
         tr.innerHTML = `
           <td style="padding:8px 10px;font-weight:500;border-bottom:0.5px solid rgba(255,255,255,0.1);">${item.label}</td>
           <td style="padding:8px 10px;text-align:center;border-bottom:0.5px solid rgba(255,255,255,0.1);">
-            ${req>0?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:${c};">
-              <input type="number" min="0" value="${req||''}" placeholder="0" id="req_${safeId}"
+          <td style="padding:8px 10px;text-align:center;border-bottom:0.5px solid rgba(255,255,255,0.1);">
+            <span style="font-family:'DM Mono',monospace;font-size:11px;color:${c};">
                 style="width:55px;background:#0f1117;border:0.5px solid rgba(100,116,139,0.3);color:#94a3b8;font-size:11px;padding:2px 4px;border-radius:4px;text-align:left;font-family:'DM Mono',monospace;" />
               <span style="font-size:9px;color:#64748b;"> Req - </span>
               <input type="number" min="0" value="${rec||''}" placeholder="0" id="rec_${safeId}"
@@ -1143,7 +1160,7 @@
                 style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(74,222,128,0.1);border:0.5px solid rgba(74,222,128,0.3);color:#4ade80;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:4px;">Save</button>
             </span>
             <div style="width:100%;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-top:3px;"><div style="height:100%;width:${Math.min(req>0?rec/req*100:0,100)}%;background:${c};border-radius:3px;"></div></div>`:'-'}
-          </td>
+            <div style="width:100%;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-top:3px;"><div style="height:100%;width:${Math.min(req>0?rec/req*100:0,100)}%;background:${c};border-radius:3px;"></div></div>
           <td style="padding:8px 10px;text-align:center;border-bottom:0.5px solid rgba(255,255,255,0.1);">
             <span style="font-size:11px;color:${c};font-weight:600;">${lbl}</span>
           </td>`;
@@ -1504,6 +1521,23 @@
       document.querySelectorAll('textarea[data-existing]').forEach(el => {
         const note = el.dataset.existing;
         if (note) renderNotesDisplay(el.parentElement, note);
+      });
+    }
+
+    /* ── Light/Dark Mode ── */
+    function toggleMode() {
+      const body = document.body;
+      const btn  = document.getElementById('mode-btn');
+      const isLight = body.classList.toggle('light');
+      btn.textContent = isLight ? '🌙' : '☀️';
+      localStorage.setItem('tracker_mode', isLight ? 'light' : 'dark');
+    }
+    /* Restore saved mode */
+    if (localStorage.getItem('tracker_mode') === 'light') {
+      document.body.classList.add('light');
+      window.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('mode-btn');
+        if (btn) btn.textContent = '☀️';
       });
     }
 
