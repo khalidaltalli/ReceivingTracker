@@ -1031,7 +1031,8 @@
             <span style="font-size:11px;color:#64748b;font-weight:500;">D.N. Folder:</span>
             ${folder?`<a href="${folder}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:4px 12px;border-radius:6px;background:rgba(34,211,238,0.08);border:0.5px solid rgba(34,211,238,0.2);color:#22d3ee;text-decoration:none;">🔗 D.N. Folder</a>`:
             `<button onclick="addFolder('${branch.code}','${cardId}')" style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(34,211,238,0.08);border:0.5px solid rgba(34,211,238,0.2);color:#22d3ee;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Add Folder</button>`}
-            <button onclick="generateBranchReport('${branch.code}')" style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(74,222,128,0.08);border:0.5px solid rgba(74,222,128,0.2);color:#4ade80;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:auto;">⬇ PDF</button>
+            <button onclick="generateBranchReport('${branch.code}')" style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(74,222,128,0.08);border:0.5px solid rgba(74,222,128,0.2);color:#4ade80;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:auto;">⬇ Report PDF</button>
+            <button onclick="generateMissingPDF('${branch.code}')" style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(251,191,36,0.08);border:0.5px solid rgba(251,191,36,0.2);color:#fbbf24;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:4px;">⬇ Missing PDF</button>
           </div>
           <div style="display:flex;gap:6px;padding:0.6rem 1.25rem;border-bottom:0.5px solid rgba(255,255,255,0.05);flex-wrap:wrap;align-items:center;" id="${cardId}_filterbar">
             <span style="font-size:11px;color:#64748b;">Show:</span>
@@ -1345,6 +1346,115 @@
       const t=document.getElementById('save-toast');
       t.textContent=msg||'✓ Saved';t.style.opacity='1';
       clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.opacity='0',2500);
+    }
+
+    /* ── Missing PDF (Delivered + Not Received only) ── */
+    function generateMissingPDF(branch) {
+      const { jsPDF } = window.jspdf;
+      const doc   = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const today = new Date().toLocaleDateString('en-GB');
+
+      const CLR = {
+        bg:[255,255,255], card:[240,242,247], text:[15,23,42],
+        accent:[14,116,144], green:[22,163,74], amber:[180,120,0],
+        red:[185,28,28], grey:[100,116,139],
+        rowOdd:[248,250,252], rowEven:[255,255,255], border:[203,213,225],
+      };
+
+      const assets    = (typeof trackerData !== 'undefined' ? trackerData : []).filter(r => (r['Branch Code']||'').trim() === branch);
+      const delivered = assets.filter(a => a['Asset Status'] === 'Delivered');
+      const notRec    = assets.filter(a => a['Asset Status'] === 'Not Received');
+      const total     = delivered.length + notRec.length;
+
+      function drawHeader() {
+        doc.setFillColor(...CLR.card); doc.rect(0,0,pageW,18,'F');
+        doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(...CLR.text);
+        doc.text('Missing Assets Report', 10, 11);
+        doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...CLR.accent);
+        doc.text(branch, pageW-10, 7, {align:'right'});
+        doc.setTextColor(...CLR.grey); doc.text(today, pageW-10, 13, {align:'right'});
+        doc.setDrawColor(...CLR.accent); doc.setLineWidth(0.5); doc.line(0,18,pageW,18);
+      }
+
+      function drawFooter(pg, total) {
+        doc.setFillColor(...CLR.card); doc.rect(0,pageH-8,pageW,8,'F');
+        doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...CLR.grey);
+        doc.text('Missing Assets — '+branch, 10, pageH-3);
+        doc.text(`Page ${pg} of ${total}`, pageW/2, pageH-3, {align:'center'});
+        doc.text(today, pageW-10, pageH-3, {align:'right'});
+      }
+
+      drawHeader();
+      let y = 22;
+
+      /* KPI cards */
+      const cards = [
+        {label:'Delivered',    value:delivered.length, color:CLR.amber},
+        {label:'Not Received', value:notRec.length,    color:CLR.red},
+        {label:'Total Missing',value:total,             color:CLR.accent},
+      ];
+      const cw = (pageW-20)/cards.length;
+      cards.forEach((c,i) => {
+        const x = 10+i*cw;
+        doc.setFillColor(...CLR.card); doc.roundedRect(x,y,cw-3,18,2,2,'F');
+        doc.setDrawColor(...CLR.border); doc.setLineWidth(0.2); doc.roundedRect(x,y,cw-3,18,2,2,'S');
+        doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...CLR.grey);
+        doc.text(c.label.toUpperCase(), x+(cw-3)/2, y+5, {align:'center'});
+        doc.setFontSize(16); doc.setFont('helvetica','bold'); doc.setTextColor(...c.color);
+        doc.text(String(c.value), x+(cw-3)/2, y+13, {align:'center'});
+      });
+      y += 22;
+
+      /* Section order */
+      const SECTION_ORDER = ['Construction','Shelves','Fridges','Office','Store Sections','Consumable Assets','Store Tools'];
+
+      function drawSectionTable(title, rows, color) {
+        if (rows.length === 0) return;
+        if (y > pageH-50) { doc.addPage(); drawHeader(); y=22; }
+        doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...color);
+        doc.text(title + ' (' + rows.length + ')', 10, y); y+=4;
+
+        /* Sort by section */
+        rows.sort((a,b) => {
+          const si = SECTION_ORDER.indexOf(a['Section']||'');
+          const sj = SECTION_ORDER.indexOf(b['Section']||'');
+          return (si===-1?99:si) - (sj===-1?99:sj) || (a['Asset']||'').localeCompare(b['Asset']||'');
+        });
+
+        doc.autoTable({
+          startY: y,
+          head: [['Section','Asset','Priority']],
+          body: rows.map(r => [r['Section']||'', r['Asset']||'', r['Priority']||'']),
+          theme: 'plain',
+          styles: {fontSize:8, textColor:CLR.text, fillColor:CLR.bg, cellPadding:2.5},
+          headStyles: {fillColor:CLR.card, textColor:CLR.accent, fontStyle:'bold', fontSize:8},
+          alternateRowStyles: {fillColor:CLR.rowOdd},
+          columnStyles: {0:{cellWidth:45},1:{cellWidth:70},2:{cellWidth:25}},
+          margin: {left:10,right:10}, tableWidth:'wrap',
+          tableLineColor:CLR.border, tableLineWidth:0.2,
+          didParseCell: d => {
+            if (d.column.index===2 && d.section==='body') {
+              const pc={Essential:[185,28,28],High:[194,65,12],Medium:[161,98,7],Low:[22,163,74]}[d.cell.raw];
+              if(pc){d.cell.styles.textColor=pc;d.cell.styles.fontStyle='bold';}
+            }
+          }
+        });
+        y = doc.lastAutoTable.finalY + 8;
+      }
+
+      drawSectionTable('Delivered — Awaiting Signature', delivered, CLR.amber);
+      drawSectionTable('Not Received', notRec, CLR.red);
+
+      if (total === 0) {
+        doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...CLR.green);
+        doc.text('✓ All assets received!', pageW/2, y+10, {align:'center'});
+      }
+
+      const pages = doc.getNumberOfPages();
+      for(let i=1;i<=pages;i++){doc.setPage(i);drawFooter(i,pages);}
+      doc.save(`Missing_${branch}_${today.replace(/\//g,'-')}.pdf`);
     }
 
     function generateBranchReport(branch) {
