@@ -268,7 +268,7 @@
     let trackerData     = [];
     let trackerStatus   = {};
     let trackerBranches = [];
-    let branchExtras    = {}; /* code -> { statusDate, assetListLink, layoutLink } */
+    let branchExtras    = {}; /* code -> { receivingDate, liveDate, assetListLink, layoutLink } */
 
     async function loadTracker() {
       document.getElementById('tracker-updated').textContent='Loading...';
@@ -289,14 +289,14 @@
           branchExtras={};
           (bc.rows||[]).forEach(r=>{
             const b=(r['Branch Code']||'').trim();
-            if(b) branchExtras[b]={ statusDate: r['Status Date']||'', assetListLink:'', layoutLink:'' };
+            if(b) branchExtras[b]={ receivingDate: r['Receiving Date']||'', liveDate: r['Live Date']||'', assetListLink:'', layoutLink:'' };
           });
         } catch(e){branchExtras={};}
         /* Links: D.N. Folder, Layout Link, Asset Link from Links tab */
         (Object.values(trackerStatus)).forEach(r=>{
           const b=(r['Branch Code']||'').trim();
           if(!b) return;
-          if(!branchExtras[b]) branchExtras[b]={statusDate:'',assetListLink:'',layoutLink:''};
+          if(!branchExtras[b]) branchExtras[b]={receivingDate:'',liveDate:'',assetListLink:'',layoutLink:''};
           branchExtras[b].layoutLink   = r['Layout link'] || r['Layout Link'] || '';
           branchExtras[b].assetListLink= r['Asset Link']  || r['Asset link']  || '';
         });
@@ -432,7 +432,7 @@
               <option value="Live"      ${branch.status==='Live'     ?'selected':''}>Live</option>
               <option value="Pending"   ${branch.status==='Pending'  ?'selected':''}>Pending</option>
             </select>
-            <span id="${cardId}_statusdate" style="font-size:10px;color:#475569;font-weight:400;">${(branchExtras[branch.code]?.statusDate?branchExtras[branch.code].statusDate.split(' ')[0]:'')}</span>
+            <span id="${cardId}_statusdate" style="font-size:10px;color:#475569;font-weight:400;">${(()=>{const ex=branchExtras[branch.code]||{};const d=branch.status==='Live'?ex.liveDate:branch.status==='Receiving'?ex.receivingDate:'';return d?d.split(' ')[0]:'';})()}</span>
             <span class="pill pill-received">${rec} Received</span>
             ${del>0?`<span class="pill" style="background:rgba(251,191,36,0.1);color:#fbbf24;">${del} Delivered</span>`:''}
             <span class="pill pill-not-received">${nr} Not Received</span>
@@ -721,7 +721,8 @@
       /* Stamp today's date (date only) next to the dropdown */
       const today=new Date().toLocaleDateString('en-GB'); /* dd/mm/yyyy */
       if(!branchExtras[branchCode])branchExtras[branchCode]={};
-      branchExtras[branchCode].statusDate=today;
+      if(newStatus==='Receiving')branchExtras[branchCode].receivingDate=today;
+      if(newStatus==='Live')branchExtras[branchCode].liveDate=today;
       const cardId='tc_'+branchCode.replace(/[^a-zA-Z0-9]/g,'_');
       const dateEl=document.getElementById(cardId+'_statusdate');
       if(dateEl) dateEl.textContent=today;
