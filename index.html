@@ -154,15 +154,18 @@
         </div>
 
         <div class="table-card" style="margin-bottom:0;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;gap:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;gap:8px;">
             <div class="chart-title" style="margin-bottom:0;">⚠️ Discrepancy</div>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <select id="shortage-asset-filter" onchange="filterShortageTable()"
-                style="background:#0f1117;border:0.5px solid rgba(255,255,255,0.1);color:#e2e8f0;font-size:11px;padding:4px 8px;border-radius:5px;font-family:'DM Sans',sans-serif;max-width:130px;">
-                <option value="">All Items</option>
-              </select>
-              <button onclick="exportShortagePDF()" style="font-size:10px;padding:3px 8px;border-radius:5px;background:rgba(248,113,113,0.08);border:0.5px solid rgba(248,113,113,0.2);color:#f87171;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">⬇ PDF</button>
-            </div>
+            <button onclick="exportShortagePDF()" style="font-size:10px;padding:3px 8px;border-radius:5px;background:rgba(248,113,113,0.08);border:0.5px solid rgba(248,113,113,0.2);color:#f87171;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">⬇ PDF</button>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:0.6rem;align-items:center;flex-wrap:wrap;">
+            <button onclick="filterDiscrepancy('ALL',this)" id="disc-filter-all" style="font-size:10px;padding:3px 10px;border-radius:10px;border:0.5px solid rgba(34,211,238,0.3);background:rgba(34,211,238,0.12);color:#22d3ee;cursor:pointer;font-family:'DM Sans',sans-serif;">All</button>
+            <button onclick="filterDiscrepancy('shortage',this)" style="font-size:10px;padding:3px 10px;border-radius:10px;border:0.5px solid rgba(255,255,255,0.1);background:transparent;color:#94a3b8;cursor:pointer;font-family:'DM Sans',sans-serif;">Shortage</button>
+            <button onclick="filterDiscrepancy('extra',this)" style="font-size:10px;padding:3px 10px;border-radius:10px;border:0.5px solid rgba(255,255,255,0.1);background:transparent;color:#94a3b8;cursor:pointer;font-family:'DM Sans',sans-serif;">Extra</button>
+            <select id="shortage-asset-filter" onchange="filterShortageTable()"
+              style="margin-left:auto;background:#0f1117;border:0.5px solid rgba(255,255,255,0.1);color:#e2e8f0;font-size:11px;padding:3px 8px;border-radius:5px;font-family:'DM Sans',sans-serif;max-width:130px;">
+              <option value="">All Items</option>
+            </select>
           </div>
           <div style="overflow-x:auto;max-height:280px;overflow-y:auto;"><div id="task-shortage-table"></div></div>
         </div>
@@ -723,7 +726,7 @@
       const discrepancyRows=[];
       branchCodes.forEach(b=>{const fq=qtyData[b]||{};QTY_ITEMS.forEach(item=>{const req=parseInt(fq[item.req]||0)||0,rec=parseInt(fq[item.rec]||0)||0,diff=rec-req;if(req>0&&diff!==0)discrepancyRows.push({branch:b,item:item.label,req,rec,diff,type:diff<0?'shortage':'extra'});});});
       document.getElementById('task-shortage-table').innerHTML=discrepancyRows.length
-        ?`<table><thead><tr><th style="text-align:left;min-width:100px;">Branch</th><th style="text-align:left;min-width:90px;">Item</th><th style="min-width:110px;">Req / Rec</th><th style="min-width:80px;">Diff</th></tr></thead><tbody>${discrepancyRows.map(r=>`<tr data-asset="${r.item}"><td style="font-weight:600;"><a href="#" onclick="scrollToBranch('${r.branch}');return false;" style="color:#22d3ee;text-decoration:none;">${r.branch}</a></td><td>${r.item}</td><td style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;">${r.req} / ${r.rec}</td><td style="text-align:center;"><span style="color:${r.type==='shortage'?'#f87171':'#22d3ee'};font-weight:700;font-family:'DM Mono',monospace;">${r.diff>0?'+'+r.diff:r.diff}</span></td></tr>`).join('')}</tbody></table>`
+        ?`<table><thead><tr><th style="text-align:left;min-width:100px;">Branch</th><th style="text-align:left;min-width:90px;">Item</th><th style="min-width:110px;">Req / Rec</th><th style="min-width:80px;">Diff</th></tr></thead><tbody>${discrepancyRows.map(r=>`<tr data-asset="${r.item}" data-type="${r.type}"><td style="font-weight:600;"><a href="#" onclick="scrollToBranch('${r.branch}');return false;" style="color:#22d3ee;text-decoration:none;">${r.branch}</a></td><td>${r.item}</td><td style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;">${r.req} / ${r.rec}</td><td style="text-align:center;"><span style="color:${r.type==='shortage'?'#f87171':'#22d3ee'};font-weight:700;font-family:'DM Mono',monospace;">${r.diff>0?'+'+r.diff:r.diff}</span></td></tr>`).join('')}</tbody></table>`
         :'<p style="color:#4ade80;font-size:12px;padding:8px 0;">✓ No discrepancies!</p>';
 
       /* Populate discrepancy item dropdown */
@@ -739,10 +742,30 @@
       });
     }
 
-    function filterShortageTable(){
-      const q=document.getElementById('shortage-asset-filter')?.value||'';
+    let discrepancyTypeFilter = 'ALL';
+
+    function filterDiscrepancy(type, btn) {
+      discrepancyTypeFilter = type;
+      document.querySelectorAll('#disc-filter-all, #disc-filter-all ~ button').forEach(b=>{
+        b.style.background='transparent';b.style.color='#94a3b8';b.style.borderColor='rgba(255,255,255,0.1)';
+      });
+      /* highlight active pill */
+      const pills = document.querySelectorAll('[onclick^="filterDiscrepancy"]');
+      pills.forEach(b=>{ if(b.onclick.toString().includes(`'${type}'`)||b.getAttribute('onclick').includes(`'${type}'`)){ b.style.background=type==='extra'?'rgba(34,211,238,0.12)':'rgba(248,113,113,0.12)'; b.style.color=type==='extra'?'#22d3ee':type==='shortage'?'#f87171':'#22d3ee'; b.style.borderColor=type==='extra'?'rgba(34,211,238,0.3)':'rgba(248,113,113,0.3)'; } });
+      if(type==='ALL'){ const ab=document.getElementById('disc-filter-all'); if(ab){ab.style.background='rgba(34,211,238,0.12)';ab.style.color='#22d3ee';ab.style.borderColor='rgba(34,211,238,0.3)';} }
+      applyDiscrepancyFilters();
+    }
+
+    function filterShortageTable() {
+      applyDiscrepancyFilters();
+    }
+
+    function applyDiscrepancyFilters() {
+      const asset = document.getElementById('shortage-asset-filter')?.value || '';
       document.querySelectorAll('#task-shortage-table tbody tr').forEach(tr=>{
-        tr.style.display=(!q||tr.dataset.asset===q)?'':'none';
+        const matchType  = discrepancyTypeFilter === 'ALL' || tr.dataset.type === discrepancyTypeFilter;
+        const matchAsset = !asset || tr.dataset.asset === asset;
+        tr.style.display = (matchType && matchAsset) ? '' : 'none';
       });
     }
 
