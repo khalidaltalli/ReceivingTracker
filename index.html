@@ -521,6 +521,7 @@
               ?`<a href="${branchExtras[branch.code].layoutLink}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(52,211,153,0.08);border:0.5px solid rgba(52,211,153,0.2);color:#34d399;text-decoration:none;">🗺️ Layout</a>`
               :`<button onclick="saveBranchLink('${branch.code}','layoutLink','🗺️ Layout')" style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(52,211,153,0.08);border:0.5px solid rgba(52,211,153,0.2);color:#34d399;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Layout</button>`}
             <button onclick="generateBranchReport('${branch.code}')" style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(74,222,128,0.08);border:0.5px solid rgba(74,222,128,0.2);color:#4ade80;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:auto;">⬇ Report PDF</button>
+            <button onclick="exportBranchXLSX('${branch.code}')" style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(34,211,238,0.08);border:0.5px solid rgba(34,211,238,0.2);color:#22d3ee;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:4px;">⬇ XLS</button>
             <button onclick="generateMissingPDF('${branch.code}')" style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(251,191,36,0.08);border:0.5px solid rgba(251,191,36,0.2);color:#fbbf24;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:4px;">⬇ Missing PDF</button>
           </div>
           <div style="display:flex;gap:6px;padding:0.6rem 1.25rem;border-bottom:0.5px solid rgba(255,255,255,0.05);flex-wrap:wrap;align-items:center;" id="${cardId}_filterbar">
@@ -1121,6 +1122,43 @@
       branchSections.forEach(s=>{const sAssets=assets.filter(r=>r['Section']===s);if(!sAssets.length)return;if(y>pageH-50){doc.addPage();dH();y=22;}doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(...CLR.text);doc.text(s,10,y);y+=4;doc.autoTable({startY:y,head:[['Asset','Priority','Status']],body:sAssets.map(r=>[r['Asset']||'',r['Priority']||'',r['Asset Status']||'None']),theme:'plain',styles:{fontSize:8,textColor:CLR.text,fillColor:CLR.bg,cellPadding:2.5},headStyles:{fillColor:CLR.card,textColor:CLR.accent,fontStyle:'bold',fontSize:8},alternateRowStyles:{fillColor:CLR.rowOdd},columnStyles:{0:{cellWidth:70},1:{cellWidth:25},2:{cellWidth:35}},margin:{left:10,right:10},tableWidth:'wrap',tableLineColor:CLR.border,tableLineWidth:0.2,didParseCell:d=>{if(d.column.index===1&&d.section==='body'){const pc={Essential:[185,28,28],High:[194,65,12],Medium:[161,98,7],Low:[22,163,74]}[d.cell.raw];if(pc){d.cell.styles.textColor=pc;d.cell.styles.fontStyle='bold';}}if(d.column.index===2&&d.section==='body'){const sc={Received:CLR.green,Delivered:CLR.amber,'Not Received':CLR.red}[d.cell.raw];if(sc){d.cell.styles.textColor=sc;d.cell.styles.fontStyle='bold';}}}});y=doc.lastAutoTable.finalY+6;});
       const qtyRows=QTY_ITEMS.map(item=>{const req=parseInt(fq[item.req]||0)||0,rec=parseInt(fq[item.rec]||0)||0;if(req<=0)return null;const diff=rec-req;return[item.label,req,rec,diff>0?'+'+diff+' Extra':diff<0?diff+' Shortage':'✓ Exact'];}).filter(Boolean);
       if(qtyRows.length){if(y>pageH-50){doc.addPage();dH();y=22;}doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(...CLR.text);doc.text('Fridges & Shelves Quantities',10,y);y+=4;doc.autoTable({startY:y,head:[['Item','Requested','Received','Status']],body:qtyRows,theme:'plain',styles:{fontSize:8,textColor:CLR.text,fillColor:CLR.bg,cellPadding:2.5},headStyles:{fillColor:CLR.card,textColor:CLR.accent,fontStyle:'bold',fontSize:8},alternateRowStyles:{fillColor:CLR.rowOdd},columnStyles:{0:{cellWidth:40},1:{cellWidth:25},2:{cellWidth:25},3:{cellWidth:40}},margin:{left:10,right:10},tableWidth:'wrap',tableLineColor:CLR.border,tableLineWidth:0.2,didParseCell:d=>{if(d.column.index===3&&d.section==='body'){const v=String(d.cell.raw);if(v.includes('Extra')){d.cell.styles.textColor=CLR.cyan;d.cell.styles.fontStyle='bold';}else if(v.includes('Shortage')){d.cell.styles.textColor=CLR.red;d.cell.styles.fontStyle='bold';}else{d.cell.styles.textColor=CLR.green;d.cell.styles.fontStyle='bold';}}}});}
+      /* ── Append Missing Section (Delivered + Not Received) ── */
+      const delivered2 = assets.filter(a=>a['Asset Status']==='Delivered');
+      const notRec2    = assets.filter(a=>a['Asset Status']==='Not Received');
+      const SECTION_ORDER2 = ['Construction','Shelves','Fridges','Office','Store Sections','Consumable Assets','Store Tools'];
+      const QTY_ASSETS2 = {'Freebolt':{req:'Freebolt Req',rec:'Freebolt Rec'},'Heavy Rack':{req:'Heavy Rack Req',rec:'Heavy Rack Rec'},'1 Door Chiller':{req:'1D Fridge Req',rec:'1D Fridge Rec'},'2 Door Chiller':{req:'2D Fridge Req',rec:'2D Fridge Rec'},'1 Door Freezer':{req:'1D Freezer Req',rec:'1D Freezer Rec'},'2 Door Freezer':{req:'2D Freezer Req',rec:'2D Freezer Rec'}};
+      function drawMissSection(title,rows2,color){
+        if(!rows2.length)return;
+        if(y>pageH-50){doc.addPage();dH();y=22;}
+        doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(...color);doc.text(title+' ('+rows2.length+')',10,y);y+=4;
+        rows2.sort((a,b)=>{const si=SECTION_ORDER2.indexOf(a['Section']||''),sj=SECTION_ORDER2.indexOf(b['Section']||'');return(si===-1?99:si)-(sj===-1?99:sj)||(a['Asset']||'').localeCompare(b['Asset']||'');});
+        doc.autoTable({startY:y,head:[['Section','Asset','Priority','Qty']],
+          body:rows2.map(r=>{const qk=QTY_ASSETS2[r['Asset']||''];return[r['Section']||'',r['Asset']||'',r['Priority']||'',qk?`Req:${parseInt(fq[qk.req]||0)||0} / Rec:${parseInt(fq[qk.rec]||0)||0}`:''];}),
+          theme:'plain',styles:{fontSize:8,textColor:CLR.text,fillColor:CLR.bg,cellPadding:2.5},
+          headStyles:{fillColor:CLR.card,textColor:CLR.accent,fontStyle:'bold',fontSize:8},
+          alternateRowStyles:{fillColor:CLR.rowOdd},
+          columnStyles:{0:{cellWidth:40},1:{cellWidth:65},2:{cellWidth:22},3:{cellWidth:38}},
+          margin:{left:10,right:10},tableWidth:'wrap',tableLineColor:CLR.border,tableLineWidth:0.2,
+          didParseCell:d=>{if(d.column.index===2&&d.section==='body'){const pc={Essential:[185,28,28],High:[194,65,12],Medium:[161,98,7],Low:[22,163,74]}[d.cell.raw];if(pc){d.cell.styles.textColor=pc;d.cell.styles.fontStyle='bold';}}}
+        });
+        y=doc.lastAutoTable.finalY+8;
+      }
+      if(delivered2.length||notRec2.length){
+        doc.addPage();dH();y=22;
+        doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(...CLR.text);
+        doc.text('Missing Assets Summary',10,y);y+=8;
+        /* KPI mini-cards */
+        [[CLR.amber,'Delivered',delivered2.length],[CLR.red,'Not Received',notRec2.length],[CLR.accent,'Total Missing',delivered2.length+notRec2.length]].forEach((c,i)=>{
+          const x=10+i*62;
+          doc.setFillColor(...CLR.card);doc.roundedRect(x,y,59,16,2,2,'F');
+          doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(...CLR.grey);doc.text(c[1].toUpperCase(),x+29,y+5,{align:'center'});
+          doc.setFontSize(14);doc.setFont('helvetica','bold');doc.setTextColor(...c[0]);doc.text(String(c[2]),x+29,y+13,{align:'center'});
+        });
+        y+=22;
+        drawMissSection('Delivered — Awaiting Signature',delivered2,CLR.amber);
+        drawMissSection('Not Received',notRec2,CLR.red);
+        if(!delivered2.length&&!notRec2.length){doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(...CLR.green);doc.text('✓ All assets received!',pageW/2,y+10,{align:'center'});}
+      }
       const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);dF(i,pages);}
       doc.save(`Report_${branch}_${today.replace(/\//g,'-')}.pdf`);
     }
@@ -1737,7 +1775,30 @@
       XLSX.writeFile(wb,`Not_Received_${today}.xlsx`);
     }
 
-    function exportDiscrepancyXLSX() {
+    function exportBranchXLSX(branch) {
+      const today = new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
+      const wb    = XLSX.utils.book_new();
+      const assets = trackerData.filter(r=>(r['Branch Code']||'').trim()===branch);
+      /* Sheet 1: All Assets */
+      const rows = [['Section','Asset','Priority','Status','D.N. Not Signed','D.N. Signed','Notes']];
+      assets.forEach(r=>rows.push([r['Section']||'',r['Asset']||'',r['Priority']||'',r['Asset Status']||'None',r['D.N. Not Signed']||'',r['D.N. Signed']||'',r['Notes']||'']));
+      const ws1 = XLSX.utils.aoa_to_sheet(rows);
+      ws1['!cols']=[{wch:20},{wch:28},{wch:12},{wch:16},{wch:20},{wch:20},{wch:30}];
+      XLSX.utils.book_append_sheet(wb, ws1, 'Assets');
+      /* Sheet 2: Qty */
+      const fq = qtyData[branch]||{};
+      const qtyRows = [['Item','Requested','Received','Diff']];
+      QTY_ITEMS.forEach(item=>{
+        const req=parseInt(fq[item.req]||0)||0, rec=parseInt(fq[item.rec]||0)||0;
+        if(req>0) qtyRows.push([item.label, req, rec, rec-req]);
+      });
+      if(qtyRows.length>1){
+        const ws2=XLSX.utils.aoa_to_sheet(qtyRows);
+        ws2['!cols']=[{wch:18},{wch:12},{wch:12},{wch:10}];
+        XLSX.utils.book_append_sheet(wb, ws2, 'Quantities');
+      }
+      XLSX.writeFile(wb, `${branch}_${today}.xlsx`);
+    }
       const today=new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
       const rows=[['Branch','Item','Req','Rec','Diff','Type']];
       document.querySelectorAll('#task-shortage-table tbody tr').forEach(tr=>{
