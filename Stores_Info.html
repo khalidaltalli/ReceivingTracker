@@ -21,12 +21,16 @@
       --cyan-dim: rgba(34,211,238,0.12);
       --green: #4ade80;
       --green-dim: rgba(74,222,128,0.12);
+      --mint: #6ee7b7;
+      --mint-dim: rgba(110,231,183,0.13);
       --amber: #fbbf24;
       --amber-dim: rgba(251,191,36,0.12);
       --red: #f87171;
       --red-dim: rgba(248,113,113,0.12);
       --grey: #94a3b8;
       --grey-dim: rgba(148,163,184,0.12);
+      --purple: #a78bfa;
+      --purple-dim: rgba(167,139,250,0.12);
       --radius: 10px;
       --radius-sm: 6px;
     }
@@ -38,307 +42,247 @@
       min-height: 100vh;
     }
 
+    /* ── SIGN-IN OVERLAY ── */
+    .signin-overlay {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem;
+    }
+    .signin-overlay.hidden { display: none; }
+
+    .signin-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px 32px;
+      width: 100%; max-width: 380px;
+      animation: modalIn 0.2s ease;
+    }
+    .signin-title {
+      font-size: 20px; font-weight: 700; color: var(--heading);
+      margin-bottom: 4px;
+    }
+    .signin-sub {
+      font-size: 13px; color: var(--muted); margin-bottom: 28px;
+    }
+    .signin-label {
+      font-size: 11px; color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      display: block; margin-bottom: 6px;
+    }
+    .signin-select, .signin-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 16px;
+    }
+    .signin-select:focus, .signin-input:focus { border-color: var(--cyan); }
+    .signin-select option { background: var(--surface2); }
+    .signin-passcode-wrap { display: none; }
+    .signin-passcode-wrap.visible { display: block; }
+    .signin-btn {
+      width: 100%;
+      background: var(--cyan);
+      color: #0f1117;
+      border: none; border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px; font-weight: 700;
+      padding: 11px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 4px;
+    }
+    .signin-btn:hover { opacity: 0.88; }
+    .signin-error {
+      font-size: 12px; color: var(--red);
+      margin-top: 10px; text-align: center;
+      min-height: 18px;
+    }
+
     /* ── HEADER ── */
     .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between;
       padding: 1rem 2rem;
       border-bottom: 0.5px solid var(--border);
       background: var(--bg);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      position: sticky; top: 0; z-index: 100;
     }
     .header-left { display: flex; align-items: center; gap: 12px; }
     .header-logo { height: 40px; object-fit: contain; }
     .header-title { font-size: 17px; font-weight: 700; color: var(--heading); letter-spacing: -0.2px; }
     .header-sub { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
-
-    /* ── SEARCH BAR ── */
-    .search-bar {
-      padding: 1.25rem 2rem 0;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .search-wrap {
-      position: relative;
-      flex: 1;
-      max-width: 420px;
-    }
-    .search-wrap svg {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--muted);
-      pointer-events: none;
-    }
-    .search-input {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      padding: 9px 12px 9px 38px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    .search-input:focus { border-color: var(--cyan); }
-    .search-input::placeholder { color: var(--muted); }
-    .count-badge {
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      color: var(--muted);
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .user-badge {
+      display: flex; align-items: center; gap: 7px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 5px 12px;
-      white-space: nowrap;
+      padding: 5px 12px 5px 8px;
+      font-size: 13px; font-weight: 600; color: var(--text);
+    }
+    .user-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--mint); flex-shrink: 0;
+    }
+    .user-dot.viewer { background: var(--grey); }
+    .signout-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--muted);
+      font-size: 12px; font-family: 'DM Sans', sans-serif;
+      padding: 5px 10px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
+    }
+    .signout-btn:hover { color: var(--text); border-color: var(--border-hover); }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      padding: 1.25rem 2rem 0;
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    .search-wrap { position: relative; flex: 1; min-width: 200px; max-width: 360px; }
+    .search-wrap svg {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); pointer-events: none;
+    }
+    .search-input {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 14px;
+      padding: 9px 12px 9px 38px; outline: none; transition: border-color 0.15s;
+    }
+    .search-input:focus { border-color: var(--cyan); }
+    .search-input::placeholder { color: var(--muted); }
+    .filter-select {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 13px;
+      padding: 9px 12px; outline: none; cursor: pointer;
+      transition: border-color 0.15s; min-width: 140px;
+    }
+    .filter-select:focus { border-color: var(--cyan); }
+    .filter-select option { background: var(--surface2); }
+    .count-badge {
+      font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 5px 12px; white-space: nowrap; margin-left: auto;
     }
 
     /* ── STORE GRID ── */
     .store-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 14px;
-      padding: 1.25rem 2rem 2rem;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px; padding: 1.25rem 2rem 2rem;
     }
-
     .store-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px;
-      cursor: pointer;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; cursor: pointer;
       transition: border-color 0.15s, transform 0.1s, background 0.15s;
-      position: relative;
-      overflow: hidden;
+      position: relative; overflow: hidden;
     }
     .store-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0;
+      content: ''; position: absolute; top: 0; left: 0;
       width: 3px; height: 100%;
-      background: var(--card-accent, var(--cyan));
-      opacity: 0.7;
+      background: var(--card-accent, var(--grey)); opacity: 0.85;
     }
-    .store-card:hover {
-      border-color: var(--border-hover);
-      background: var(--surface2);
-      transform: translateY(-1px);
+    .store-card:hover { border-color: var(--border-hover); background: var(--surface2); transform: translateY(-1px); }
+    .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .card-code { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 700; color: #ffffff; letter-spacing: 0.3px; }
+    .status-pill { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 600; font-family: 'DM Sans', sans-serif; flex-shrink: 0; }
+    .status-live         { background: var(--mint-dim);  color: var(--mint); }
+    .status-soon         { background: var(--amber-dim); color: var(--amber); }
+    .status-construction { background: var(--cyan-dim);  color: var(--cyan); }
+    .status-closed       { background: var(--red-dim);   color: var(--red); }
+    .status-default      { background: var(--grey-dim);  color: var(--grey); }
+    .card-location {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; color: var(--muted); margin-bottom: 10px;
     }
-    .card-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-    .card-code {
+    .card-location svg { flex-shrink: 0; }
+    .card-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+    .pill { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-family: 'DM Mono', monospace; white-space: nowrap; }
+    .pill-class    { background: var(--cyan-dim);               color: var(--cyan); }
+    .pill-mezz     { background: var(--grey-dim);               color: var(--grey); }
+    .pill-pharmacy { background: var(--purple-dim);             color: var(--purple); }
+    .pill-cold     { background: rgba(96,165,250,0.12);         color: #60a5fa; }
+    .pill-location {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; padding: 3px 8px; border-radius: 20px;
       font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.5px;
-    }
-    .card-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--heading);
-      margin-bottom: 2px;
-      line-height: 1.3;
-    }
-    .card-display {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 10px;
-    }
-    .card-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 10px;
-    }
-    .meta-pill {
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 20px;
-      font-family: 'DM Mono', monospace;
-      background: var(--grey-dim);
-      color: var(--grey);
-    }
-    .status-pill {
-      font-size: 11px;
-      padding: 3px 9px;
-      border-radius: 20px;
-      font-weight: 600;
-      font-family: 'DM Sans', sans-serif;
-    }
-    .status-live    { background: var(--green-dim); color: var(--green); }
-    .status-receiving { background: var(--amber-dim); color: var(--amber); }
-    .status-construction { background: var(--cyan-dim); color: var(--cyan); }
-    .status-closed  { background: var(--red-dim); color: var(--red); }
-    .status-default { background: var(--grey-dim); color: var(--grey); }
-
-    .pharmacy-badge {
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 20px;
-      background: rgba(167,139,250,0.12);
-      color: #a78bfa;
-      font-family: 'DM Mono', monospace;
+      background: rgba(251,191,36,0.10); color: var(--amber);
     }
 
-    /* ── EMPTY STATE ── */
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-      color: var(--muted);
-      display: none;
-    }
-    .empty-state svg { margin-bottom: 12px; opacity: 0.4; }
+    /* ── EMPTY / LOADING ── */
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); display: none; }
     .empty-state p { font-size: 14px; }
-
-    /* ── LOADING ── */
-    .loading-state {
-      text-align: center;
-      padding: 4rem 2rem;
-      color: var(--muted);
-    }
+    .loading-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
     .spinner {
-      width: 28px; height: 28px;
-      border: 2px solid var(--border);
-      border-top-color: var(--cyan);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      margin: 0 auto 12px;
+      width: 28px; height: 28px; border: 2px solid var(--border);
+      border-top-color: var(--cyan); border-radius: 50%;
+      animation: spin 0.7s linear infinite; margin: 0 auto 12px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── MODAL OVERLAY ── */
+    /* ── MODAL ── */
     .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 200; align-items: center; justify-content: center; padding: 1.5rem;
     }
     .modal-overlay.open { display: flex; }
-
     .modal {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      width: 100%;
-      max-width: 640px;
-      max-height: 90vh;
-      overflow-y: auto;
-      position: relative;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; width: 100%; max-width: 640px;
+      max-height: 90vh; overflow-y: auto; position: relative;
       animation: modalIn 0.18s ease;
     }
     @keyframes modalIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
     .modal-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      padding: 20px 24px 0;
-      margin-bottom: 20px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 20px 24px 0; margin-bottom: 20px;
     }
-    .modal-code {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
+    .modal-code { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
     .modal-name { font-size: 20px; font-weight: 700; color: var(--heading); }
     .modal-close {
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 6px;
-      transition: color 0.15s, background 0.15s;
-      flex-shrink: 0;
-      margin-left: 12px;
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      padding: 4px; border-radius: 6px; transition: color 0.15s, background 0.15s;
+      flex-shrink: 0; margin-left: 12px;
     }
     .modal-close:hover { color: var(--text); background: var(--surface2); }
-
     .modal-body { padding: 0 24px 24px; }
-
     .modal-section-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--muted);
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      margin: 20px 0 10px;
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      letter-spacing: 0.8px; text-transform: uppercase; margin: 20px 0 10px;
     }
-    .modal-fields {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
+    .modal-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .modal-field { display: flex; flex-direction: column; gap: 4px; }
     .modal-field.full { grid-column: 1 / -1; }
-    .field-label {
-      font-size: 11px;
-      color: var(--muted);
-      font-family: 'DM Mono', monospace;
-    }
-    .field-value {
-      font-size: 14px;
-      color: var(--text);
-      font-weight: 500;
-    }
-    .field-link {
-      font-size: 13px;
-      color: var(--cyan);
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
+    .field-label { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+    .field-value { font-size: 14px; color: var(--text); font-weight: 500; }
+    .field-link { font-size: 13px; color: var(--cyan); text-decoration: none; display: flex; align-items: center; gap: 5px; }
     .field-link:hover { text-decoration: underline; }
-
-    /* edit mode */
     .field-input, .field-select {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      padding: 7px 10px;
-      outline: none;
-      width: 100%;
-      transition: border-color 0.15s;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 14px;
+      padding: 7px 10px; outline: none; width: 100%; transition: border-color 0.15s;
     }
     .field-input:focus, .field-select:focus { border-color: var(--cyan); }
     .field-select option { background: var(--surface2); }
-
     .modal-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 24px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border);
+      display: flex; gap: 10px; margin-top: 24px;
+      padding-top: 20px; border-top: 1px solid var(--border);
     }
     .btn {
-      padding: 9px 20px;
-      border-radius: var(--radius-sm);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: opacity 0.15s, transform 0.1s;
+      padding: 9px 20px; border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+      cursor: pointer; border: none; transition: opacity 0.15s, transform 0.1s;
     }
     .btn:active { transform: scale(0.97); }
     .btn-primary { background: var(--cyan); color: #0f1117; }
@@ -351,30 +295,18 @@
 
     /* ── TOAST ── */
     .toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 10px 18px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      z-index: 999;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity 0.2s, transform 0.2s;
-      pointer-events: none;
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 18px;
+      font-size: 13px; font-weight: 500; color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+      z-index: 999; opacity: 0; transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s; pointer-events: none;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
     .toast-dot.error { background: var(--red); }
 
-    /* ── SCROLLBAR ── */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
@@ -382,60 +314,97 @@
 </head>
 <body>
 
-  <!-- HEADER -->
-  <header class="header">
-    <div class="header-left">
-      <!-- Replace src with your logo URL -->
-      <img class="header-logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1200px-Amazon_logo.svg.png" alt="Logo" onerror="this.style.display='none'" />
-      <div>
-        <div class="header-title">Store Info</div>
-        <div class="header-sub">Store directory & details</div>
+  <!-- SIGN-IN OVERLAY -->
+  <div class="signin-overlay" id="signin-overlay">
+    <div class="signin-box">
+      <div class="signin-title">Store Info</div>
+      <div class="signin-sub">Select your name to continue</div>
+
+      <label class="signin-label">Who are you?</label>
+      <select class="signin-select" id="signin-user" onchange="onUserSelect()">
+        <option value="">— Select —</option>
+        <option value="Viewer">Viewer</option>
+        <option value="Khalid">Khalid</option>
+        <option value="Eissa">Eissa</option>
+        <option value="Abdulrahman">Abdulrahman</option>
+        <option value="Mahmmoud">Mahmmoud</option>
+      </select>
+
+      <div class="signin-passcode-wrap" id="passcode-wrap">
+        <label class="signin-label">Passcode</label>
+        <input class="signin-input" id="signin-passcode" type="password" placeholder="Enter passcode" onkeydown="if(event.key==='Enter') attemptSignIn()" />
       </div>
-    </div>
-  </header>
 
-  <!-- SEARCH -->
-  <div class="search-bar">
-    <div class="search-wrap">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
-      <input class="search-input" id="search" type="text" placeholder="Search by name, code, city, district…" oninput="filterStores()" />
-    </div>
-    <div class="count-badge" id="count-badge">— stores</div>
-  </div>
-
-  <!-- STORE GRID -->
-  <div class="store-grid" id="store-grid">
-    <div class="loading-state" style="grid-column:1/-1">
-      <div class="spinner"></div>
-      <p>Loading stores…</p>
+      <button class="signin-btn" onclick="attemptSignIn()">Continue</button>
+      <div class="signin-error" id="signin-error"></div>
     </div>
   </div>
-  <div class="empty-state" id="empty-state">
-    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-      <path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-    </svg>
-    <p>No stores match your search.</p>
-  </div>
 
-  <!-- DETAIL MODAL -->
-  <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
-    <div class="modal" id="modal">
-      <div class="modal-header">
+  <!-- MAIN APP (hidden until signed in) -->
+  <div id="app" style="display:none">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-left">
+        <img class="header-logo" src="" alt="Logo" onerror="this.style.display='none'" />
         <div>
-          <div class="modal-code" id="modal-code"></div>
-          <div class="modal-name" id="modal-name"></div>
+          <div class="header-title">Store Info</div>
+          <div class="header-sub">Store directory & details</div>
         </div>
-        <button class="modal-close" onclick="closeModal()">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path d="M18 6 6 18M6 6l12 12"/>
-          </svg>
-        </button>
       </div>
-      <div class="modal-body" id="modal-body"></div>
+      <div class="header-right">
+        <div class="user-badge">
+          <div class="user-dot" id="user-dot"></div>
+          <span id="user-label"></span>
+        </div>
+        <button class="signout-btn" onclick="signOut()">Sign out</button>
+      </div>
+    </header>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input class="search-input" id="search" type="text" placeholder="Search by code, city, district…" oninput="applyFilters()" />
+      </div>
+      <select class="filter-select" id="filter-status" onchange="applyFilters()">
+        <option value="">All Statuses</option>
+      </select>
+      <div class="count-badge" id="count-badge">— stores</div>
     </div>
-  </div>
+
+    <!-- STORE GRID -->
+    <div class="store-grid" id="store-grid">
+      <div class="loading-state" style="grid-column:1/-1">
+        <div class="spinner"></div>
+        <p>Loading stores…</p>
+      </div>
+    </div>
+    <div class="empty-state" id="empty-state">
+      <p>No stores match your filters.</p>
+    </div>
+
+    <!-- DETAIL MODAL -->
+    <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+      <div class="modal" id="modal">
+        <div class="modal-header">
+          <div>
+            <div class="modal-code" id="modal-code"></div>
+            <div class="modal-name" id="modal-name"></div>
+          </div>
+          <button class="modal-close" onclick="closeModal()">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+
+  </div><!-- /app -->
 
   <!-- TOAST -->
   <div class="toast" id="toast">
@@ -444,92 +413,176 @@
   </div>
 
 <script>
-  // ─── CONFIG ───────────────────────────────────────────────────────
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZ4DlhFv-RHsGhvEHT6766aCprbrWn8shmOLRZTaKqOtdhHUERfV01Ih3sG29hj0M/exec';
 
-  // ─── STATE ────────────────────────────────────────────────────────
-  let allStores = [];
+  // ─── USERS ────────────────────────────────────────────────────────
+  const USERS = {
+    'Viewer':       { passcode: null,   canEdit: false },
+    'Khalid':       { passcode: '6969', canEdit: true },
+    'Eissa':        { passcode: '1234', canEdit: true },
+    'Abdulrahman':  { passcode: '8852', canEdit: true },
+    'Mahmmoud':     { passcode: '9999', canEdit: true },
+  };
+
+  let currentUser = null;   // { name, canEdit }
+  let allStores   = [];
   let currentStore = null;
   let editMode = false;
+
+  // ─── SIGN-IN ──────────────────────────────────────────────────────
+  function onUserSelect() {
+    const name = document.getElementById('signin-user').value;
+    const wrap = document.getElementById('passcode-wrap');
+    wrap.classList.toggle('visible', name && USERS[name] && USERS[name].passcode !== null);
+    document.getElementById('signin-error').textContent = '';
+    document.getElementById('signin-passcode').value = '';
+  }
+
+  function attemptSignIn() {
+    const name = document.getElementById('signin-user').value;
+    if (!name) { document.getElementById('signin-error').textContent = 'Please select a name.'; return; }
+
+    const user = USERS[name];
+    if (user.passcode !== null) {
+      const entered = document.getElementById('signin-passcode').value;
+      if (entered !== user.passcode) {
+        document.getElementById('signin-error').textContent = 'Wrong passcode. Try again.';
+        document.getElementById('signin-passcode').value = '';
+        document.getElementById('signin-passcode').focus();
+        return;
+      }
+    }
+
+    currentUser = { name, canEdit: user.canEdit };
+    document.getElementById('signin-overlay').classList.add('hidden');
+    document.getElementById('app').style.display = 'block';
+
+    // update header badge
+    document.getElementById('user-label').textContent = name;
+    const dot = document.getElementById('user-dot');
+    dot.className = 'user-dot' + (user.canEdit ? '' : ' viewer');
+
+    fetchStores();
+  }
+
+  function signOut() {
+    currentUser = null;
+    allStores = [];
+    document.getElementById('signin-user').value = '';
+    document.getElementById('passcode-wrap').classList.remove('visible');
+    document.getElementById('signin-error').textContent = '';
+    document.getElementById('signin-overlay').classList.remove('hidden');
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('store-grid').innerHTML =
+      `<div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div><p>Loading stores…</p></div>`;
+    document.getElementById('filter-status').innerHTML = '<option value="">All Statuses</option>';
+  }
 
   // ─── STATUS HELPERS ───────────────────────────────────────────────
   function statusClass(status) {
     if (!status) return 'status-default';
     const s = status.toLowerCase();
-    if (s.includes('live'))         return 'status-live';
-    if (s.includes('receiv'))       return 'status-receiving';
-    if (s.includes('construct'))    return 'status-construction';
-    if (s.includes('closed'))       return 'status-closed';
+    if (s.includes('live') || s.includes('open'))                            return 'status-live';
+    if (s.includes('soon') || s.includes('receiv') || s.includes('opening')) return 'status-soon';
+    if (s.includes('construct'))                                             return 'status-construction';
+    if (s.includes('closed'))                                                return 'status-closed';
     return 'status-default';
   }
   function accentColor(status) {
     if (!status) return 'var(--grey)';
     const s = status.toLowerCase();
-    if (s.includes('live'))         return 'var(--green)';
-    if (s.includes('receiv'))       return 'var(--amber)';
-    if (s.includes('construct'))    return 'var(--cyan)';
-    if (s.includes('closed'))       return 'var(--red)';
+    if (s.includes('live') || s.includes('open'))                            return 'var(--mint)';
+    if (s.includes('soon') || s.includes('receiv') || s.includes('opening')) return 'var(--amber)';
+    if (s.includes('construct'))                                             return 'var(--cyan)';
+    if (s.includes('closed'))                                                return 'var(--red)';
     return 'var(--grey)';
   }
+  function statusLabel(status) {
+    if (!status) return 'Unknown';
+    const s = status.toLowerCase();
+    if (s.includes('live') || s.includes('open')) return 'Open';
+    if (s.includes('soon') || s.includes('receiv') || s.includes('opening')) return 'Opening Soon';
+    return status;
+  }
 
-  // ─── FETCH STORES ─────────────────────────────────────────────────
+  // ─── FETCH ────────────────────────────────────────────────────────
   async function fetchStores() {
     try {
-      const res = await fetch(`${APPS_SCRIPT_URL}?action=getStores`);
+      const res  = await fetch(`${APPS_SCRIPT_URL}?action=getStores`);
       const data = await res.json();
-      allStores = data;
-      renderGrid(allStores);
+      allStores  = data;
+      populateStatusFilter();
+      applyFilters();
     } catch (e) {
       document.getElementById('store-grid').innerHTML =
-        `<div class="loading-state" style="grid-column:1/-1;color:var(--red)">
-          <p>Failed to load data. Check your Apps Script URL.</p>
-        </div>`;
+        `<div class="loading-state" style="grid-column:1/-1;color:var(--red)"><p>Failed to load data.</p></div>`;
     }
+  }
+
+  function populateStatusFilter() {
+    const statuses = [...new Set(allStores.map(s => s['Store Status']).filter(Boolean))].sort();
+    const sel = document.getElementById('filter-status');
+    sel.innerHTML = '<option value="">All Statuses</option>';
+    statuses.forEach(st => {
+      const o = document.createElement('option');
+      o.value = st; o.textContent = st;
+      sel.appendChild(o);
+    });
+  }
+
+  // ─── FILTERS ──────────────────────────────────────────────────────
+  function applyFilters() {
+    const q      = document.getElementById('search').value.trim().toLowerCase();
+    const status = document.getElementById('filter-status').value;
+    let filtered = allStores;
+    if (status) filtered = filtered.filter(s => s['Store Status'] === status);
+    if (q)      filtered = filtered.filter(s =>
+      Object.values(s).some(v => v && v.toString().toLowerCase().includes(q))
+    );
+    renderGrid(filtered);
   }
 
   // ─── RENDER GRID ──────────────────────────────────────────────────
   function renderGrid(stores) {
-    const grid = document.getElementById('store-grid');
+    const grid  = document.getElementById('store-grid');
     const empty = document.getElementById('empty-state');
-    const badge = document.getElementById('count-badge');
+    document.getElementById('count-badge').textContent =
+      `${stores.length} store${stores.length !== 1 ? 's' : ''}`;
 
-    badge.textContent = `${stores.length} store${stores.length !== 1 ? 's' : ''}`;
-
-    if (stores.length === 0) {
-      grid.innerHTML = '';
-      empty.style.display = 'block';
-      return;
-    }
+    if (stores.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
     empty.style.display = 'none';
 
-    grid.innerHTML = stores.map((s, i) => `
-      <div class="store-card" style="--card-accent:${accentColor(s['Store Status'])}" onclick="openModal(${allStores.indexOf(s)})">
-        <div class="card-top">
-          <div>
-            <div class="card-code">${s['Store Code'] || '—'}</div>
-            <div class="card-name">${s['Name'] || '—'}</div>
-            <div class="card-display">${s['Display Name'] || ''}</div>
-          </div>
-          <span class="status-pill ${statusClass(s['Store Status'])}">${s['Store Status'] || 'Unknown'}</span>
-        </div>
-        <div class="card-meta">
-          ${s['City'] ? `<span class="meta-pill">📍 ${s['City']}</span>` : ''}
-          ${s['District'] ? `<span class="meta-pill">${s['District']}</span>` : ''}
-          ${s['Store Class'] ? `<span class="meta-pill">${s['Store Class']}</span>` : ''}
-          ${s['Pharmacy'] && s['Pharmacy'].toString().toLowerCase() === 'yes' ? `<span class="pharmacy-badge">💊 Pharmacy</span>` : ''}
-        </div>
-      </div>
-    `).join('');
-  }
+    grid.innerHTML = stores.map(s => {
+      const idx         = allStores.indexOf(s);
+      const hasMezz     = s['Mezannine Area'] && parseFloat(s['Mezannine Area']) > 0;
+      const hasPharmacy = s['Pharmacy']  && s['Pharmacy'].toString().toLowerCase() === 'yes';
+      const hasColdRoom = s['Cold Room'] && s['Cold Room'].toString().toLowerCase() === 'yes';
+      const hasLocation = s['Location']  && s['Location'].toString().trim() !== '';
+      const storeClass  = (s['Store Class'] || '').toString().trim();
+      const locationText = [s['City'], s['District']].filter(Boolean).join(' · ');
 
-  // ─── FILTER ───────────────────────────────────────────────────────
-  function filterStores() {
-    const q = document.getElementById('search').value.trim().toLowerCase();
-    if (!q) { renderGrid(allStores); return; }
-    const filtered = allStores.filter(s =>
-      Object.values(s).some(v => v && v.toString().toLowerCase().includes(q))
-    );
-    renderGrid(filtered);
+      return `
+        <div class="store-card" style="--card-accent:${accentColor(s['Store Status'])}" onclick="openModal(${idx})">
+          <div class="card-top">
+            <span class="card-code">${s['Store Code'] || '—'}</span>
+            <span class="status-pill ${statusClass(s['Store Status'])}">${statusLabel(s['Store Status'])}</span>
+          </div>
+          ${locationText ? `<div class="card-location">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>${locationText}</div>` : ''}
+          <div class="card-pills">
+            ${storeClass  ? `<span class="pill pill-class">Class ${storeClass}</span>` : ''}
+            ${hasMezz     ? `<span class="pill pill-mezz">Mezz Floor</span>` : ''}
+            ${hasPharmacy ? `<span class="pill pill-pharmacy">Pharmacy</span>` : ''}
+            ${hasColdRoom ? `<span class="pill pill-cold">Cold Room</span>` : ''}
+            ${hasLocation ? `<span class="pill-location">
+              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>Map</span>` : ''}
+          </div>
+        </div>`;
+    }).join('');
   }
 
   // ─── MODAL ────────────────────────────────────────────────────────
@@ -539,13 +592,10 @@
     renderModal();
     document.getElementById('modal-overlay').classList.add('open');
   }
-
   function closeModal() {
     document.getElementById('modal-overlay').classList.remove('open');
-    currentStore = null;
-    editMode = false;
+    currentStore = null; editMode = false;
   }
-
   function handleOverlayClick(e) {
     if (e.target === document.getElementById('modal-overlay')) closeModal();
   }
@@ -555,111 +605,98 @@
     document.getElementById('modal-code').textContent = s['Store Code'] || '';
     document.getElementById('modal-name').textContent = s['Name'] || 'Store Details';
 
-    const statusOptions = ['Live', 'Receiving', 'Under Construction', 'Closed'];
+    const statusOptions = ['Live', 'Opening Soon', 'Under Construction', 'Closed', 'Receiving'];
     const layoutOptions = ['Final', 'Draft', 'Pending', 'N/A'];
     const classOptions  = ['A', 'B', 'C', 'D'];
 
     const field = (label, key, type = 'text', options = []) => {
       const val = s[key] || '';
-      if (editMode) {
+      if (editMode && currentUser.canEdit) {
         if (options.length) {
           return `<div class="modal-field">
             <span class="field-label">${label}</span>
             <select class="field-select" data-key="${key}">
+              <option value="">—</option>
               ${options.map(o => `<option value="${o}" ${o === val ? 'selected' : ''}>${o}</option>`).join('')}
-            </select>
-          </div>`;
+            </select></div>`;
         }
         return `<div class="modal-field">
           <span class="field-label">${label}</span>
-          <input class="field-input" type="${type}" data-key="${key}" value="${val}" />
-        </div>`;
+          <input class="field-input" type="${type}" data-key="${key}" value="${val}" /></div>`;
       }
       if (type === 'url' && val) {
         return `<div class="modal-field">
           <span class="field-label">${label}</span>
           <a class="field-link" href="${val}" target="_blank">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            Open PDF
-          </a>
-        </div>`;
+            Open link</a></div>`;
       }
       return `<div class="modal-field">
         <span class="field-label">${label}</span>
-        <span class="field-value">${val || '—'}</span>
-      </div>`;
+        <span class="field-value">${val || '—'}</span></div>`;
     };
 
     const fullField = (label, key, type = 'text') => {
       const val = s[key] || '';
-      if (editMode) {
+      if (editMode && currentUser.canEdit) {
         return `<div class="modal-field full">
           <span class="field-label">${label}</span>
-          <input class="field-input" type="${type}" data-key="${key}" value="${val}" />
-        </div>`;
+          <input class="field-input" type="${type}" data-key="${key}" value="${val}" /></div>`;
       }
       if (type === 'url' && val) {
         return `<div class="modal-field full">
           <span class="field-label">${label}</span>
           <a class="field-link" href="${val}" target="_blank">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            ${val}
-          </a>
-        </div>`;
+            ${val}</a></div>`;
       }
       return `<div class="modal-field full">
         <span class="field-label">${label}</span>
-        <span class="field-value">${val || '—'}</span>
-      </div>`;
+        <span class="field-value">${val || '—'}</span></div>`;
     };
+
+    const canEdit = currentUser && currentUser.canEdit;
 
     document.getElementById('modal-body').innerHTML = `
       <div class="modal-section-title">General</div>
       <div class="modal-fields">
         ${field('Store Status', 'Store Status', 'text', statusOptions)}
         ${field('Store Class', 'Store Class', 'text', classOptions)}
+        ${field('Region', 'Region')}
         ${field('City', 'City')}
         ${field('District', 'District')}
-        ${field('Pharmacy', 'Pharmacy', 'text', ['Yes', 'No'])}
         ${field('Opening Date', 'Opening Date', 'date')}
+        ${field('Pharmacy', 'Pharmacy', 'text', ['Yes', 'No'])}
+        ${field('Cold Room', 'Cold Room', 'text', ['Yes', 'No'])}
       </div>
-
       <div class="modal-section-title">Areas (m²)</div>
       <div class="modal-fields">
         ${field('Ground Floor Area', 'Ground Floor Area', 'number')}
         ${field('Mezzanine Area', 'Mezannine Area', 'number')}
       </div>
-
       <div class="modal-section-title">Layout & Links</div>
       <div class="modal-fields">
         ${field('Layout Status', 'Layout Status', 'text', layoutOptions)}
         ${fullField('PDF Link', 'PDF Link', 'url')}
         ${fullField('Location', 'Location', 'url')}
       </div>
-
       <div class="modal-actions">
-        ${editMode
+        ${editMode && canEdit
           ? `<button class="btn btn-ghost" onclick="cancelEdit()">Cancel</button>
              <button class="btn btn-primary" id="save-btn" onclick="saveStore()">Save changes</button>`
-          : `<button class="btn btn-ghost" onclick="closeModal()">Close</button>
-             <button class="btn btn-edit" onclick="enableEdit()">Edit store</button>`
+          : canEdit
+            ? `<button class="btn btn-ghost" onclick="closeModal()">Close</button>
+               <button class="btn btn-edit" onclick="enableEdit()">Edit store</button>`
+            : `<button class="btn btn-ghost" onclick="closeModal()">Close</button>`
         }
-      </div>
-    `;
+      </div>`;
   }
 
-  function enableEdit() {
-    editMode = true;
-    renderModal();
-  }
-
-  function cancelEdit() {
-    editMode = false;
-    renderModal();
-  }
+  function enableEdit()  { editMode = true;  renderModal(); }
+  function cancelEdit()  { editMode = false; renderModal(); }
 
   function getEditedValues() {
-    const inputs = document.querySelectorAll('#modal-body [data-key]');
+    const inputs  = document.querySelectorAll('#modal-body [data-key]');
     const updated = { ...currentStore };
     inputs.forEach(el => { updated[el.dataset.key] = el.value; });
     return updated;
@@ -667,33 +704,30 @@
 
   async function saveStore() {
     const btn = document.getElementById('save-btn');
-    btn.disabled = true;
-    btn.textContent = 'Saving…';
-
+    btn.disabled = true; btn.textContent = 'Saving…';
     const updated = getEditedValues();
-
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'updateStore', data: updated })
+        body: JSON.stringify({
+          action: 'updateStore',
+          data: updated,
+          user: currentUser.name
+        })
       });
       const result = await res.json();
       if (result.success) {
-        // update local state
         const idx = allStores.findIndex(s => s['Store Code'] === currentStore['Store Code']);
         if (idx !== -1) allStores[idx] = updated;
         currentStore = updated;
         editMode = false;
         renderModal();
-        renderGrid(allStores);
-        showToast('Changes saved', false);
-      } else {
-        throw new Error(result.error || 'Unknown error');
-      }
+        applyFilters();
+        showToast('Changes saved');
+      } else throw new Error(result.error || 'Unknown error');
     } catch (e) {
       showToast('Save failed: ' + e.message, true);
-      btn.disabled = false;
-      btn.textContent = 'Save changes';
+      btn.disabled = false; btn.textContent = 'Save changes';
     }
   }
 
@@ -701,16 +735,12 @@
   let toastTimer;
   function showToast(msg, isError = false) {
     const toast = document.getElementById('toast');
-    const dot   = document.getElementById('toast-dot');
+    document.getElementById('toast-dot').className = 'toast-dot' + (isError ? ' error' : '');
     document.getElementById('toast-msg').textContent = msg;
-    dot.className = 'toast-dot' + (isError ? ' error' : '');
     toast.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
   }
-
-  // ─── INIT ─────────────────────────────────────────────────────────
-  fetchStores();
 </script>
 </body>
 </html>
