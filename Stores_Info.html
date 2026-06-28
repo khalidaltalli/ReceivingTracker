@@ -543,7 +543,8 @@
       applyFilters();
     } catch (e) {
       document.getElementById('store-grid').innerHTML =
-        '<div class="loading-state" style="grid-column:1/-1;color:var(--red)"><p>Failed to load data. Make sure the Apps Script is deployed as \'Anyone\'.</p></div>';
+        '<div class="loading-state" style="grid-column:1/-1;color:var(--red)"><p>Error: ' + e.message + '</p></div>';
+      console.error('fetchStores failed:', e);
     }
   }
 
