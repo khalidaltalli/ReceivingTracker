@@ -505,35 +505,26 @@
     return status;
   }
 
-  // ─── JSONP (bypasses CORS on Apps Script) ────────────────────────
-  function jsonp(url) {
-    return new Promise((resolve, reject) => {
-      const cbName = '_jsonp_' + Date.now();
-      const script = document.createElement('script');
-      const timer  = setTimeout(() => {
-        delete window[cbName]; document.body.removeChild(script);
-        reject(new Error('JSONP timeout'));
-      }, 15000);
-      window[cbName] = (data) => {
-        clearTimeout(timer); delete window[cbName]; document.body.removeChild(script);
-        resolve(data);
-      };
-      script.onerror = () => { clearTimeout(timer); reject(new Error('Script load error')); };
-      script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
-      document.body.appendChild(script);
-    });
+  // ─── API CALL (fetch with redirect follow) ───────────────────────
+  async function appsScriptRequest(params) {
+    const url = APPS_SCRIPT_URL + '?' + new URLSearchParams(params).toString();
+    const res = await fetch(url, { redirect: 'follow' });
+    const text = await res.text();
+    // Strip any JSONP wrapper if present
+    const clean = text.trim().replace(/^[^(]+\(/, '').replace(/\);?$/, '');
+    return JSON.parse(clean);
   }
 
   // ─── FETCH ────────────────────────────────────────────────────────
   async function fetchStores() {
     try {
-      const data = await jsonp(APPS_SCRIPT_URL + '?action=getStores');
+      const data = await appsScriptRequest({ action: 'getStores' });
       allStores  = data;
       populateStatusFilter();
       applyFilters();
     } catch (e) {
       document.getElementById('store-grid').innerHTML =
-        '<div class="loading-state" style="grid-column:1/-1;color:var(--red)"><p>Failed to load data.</p></div>';
+        '<div class="loading-state" style="grid-column:1/-1;color:var(--red)"><p>Failed to load data. Make sure the Apps Script is deployed as \'Anyone\'.</p></div>';
     }
   }
 
@@ -725,12 +716,9 @@
     btn.disabled = true; btn.textContent = 'Saving…';
     const updated = getEditedValues();
     try {
-      const payload = encodeURIComponent(JSON.stringify({
-        action: 'updateStore',
-        data: updated,
-        user: currentUser.name
-      }));
-      const result = await jsonp(APPS_SCRIPT_URL + '?payload=' + payload);
+      const result = await appsScriptRequest({
+        payload: JSON.stringify({ action: 'updateStore', data: updated, user: currentUser.name })
+      });
       if (result.success) {
         const idx = allStores.findIndex(s => s['Store Code'] === currentStore['Store Code']);
         if (idx !== -1) allStores[idx] = updated;
