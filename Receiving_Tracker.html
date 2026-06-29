@@ -56,6 +56,31 @@
     .badge-eissa  { background:rgba(251,146,60,0.15);  color:#fb923c; }
     .loading { text-align:center; padding:3rem; color:#64748b; font-size:13px; }
     .chart-title { font-size:12px; color:#f1f5f9; margin-bottom:1rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+    /* ── New sections ── */
+    .proc-table,.out-table { width:100%;border-collapse:collapse;font-size:11px; }
+    .proc-table th,.out-table th { padding:6px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;color:#64748b;border-bottom:0.5px solid rgba(255,255,255,0.08); }
+    .proc-table td,.out-table td { padding:6px 8px;border-bottom:0.5px solid rgba(255,255,255,0.05);vertical-align:middle; }
+    .proc-table tr:hover td,.out-table tr:hover td { background:rgba(255,255,255,0.02); }
+    .badge-esc { background:rgba(248,113,113,0.15);color:#f87171;font-size:9px;padding:1px 6px;border-radius:4px;font-weight:700; }
+    .badge-ok  { background:rgba(74,222,128,0.12);color:#4ade80;font-size:9px;padding:1px 6px;border-radius:4px; }
+    .timeline-entry { display:flex;gap:10px;padding:7px 0;border-bottom:0.5px solid rgba(255,255,255,0.04); }
+    .tl-dot { width:8px;height:8px;border-radius:50%;background:#22d3ee;margin-top:4px;flex-shrink:0; }
+    .tl-dot.warn{background:#fbbf24;} .tl-dot.err{background:#f87171;} .tl-dot.ok{background:#4ade80;}
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:300; }
+    .modal-box { background:#1a1f2e;border:0.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:1.5rem;width:540px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden; }
+    .modal-scroll { overflow-y:auto;flex:1;padding-right:4px; }
+    .modal-box h3 { font-size:15px;font-weight:700;color:#f1f5f9;margin-bottom:1rem; }
+    .form-row { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px; }
+    .form-row.full { grid-template-columns:1fr; }
+    .form-label { font-size:11px;color:#94a3b8;display:block;margin-bottom:3px; }
+    .form-input,.form-select { width:100%;background:#0f1117;border:0.5px solid rgba(255,255,255,0.12);color:#e2e8f0;font-size:11px;padding:6px 8px;border-radius:6px;font-family:'DM Sans',sans-serif; }
+    .form-input:focus,.form-select:focus { outline:none;border-color:rgba(34,211,238,0.4); }
+    .sb { font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600; }
+    .sb-requested{background:rgba(100,116,139,0.2);color:#94a3b8;}
+    .sb-po{background:rgba(14,116,144,0.2);color:#22d3ee;}
+    .sb-transit{background:rgba(180,120,0,0.2);color:#fbbf24;}
+    .sb-delivered{background:rgba(22,163,74,0.2);color:#4ade80;}
+    .sb-escalated{background:rgba(248,113,113,0.18);color:#f87171;}
   </style>
 </head>
 <body>
@@ -659,6 +684,67 @@
         qtyTbody.appendChild(tr);
       });
       card.appendChild(qtyWrap);
+
+      /* ══════════════════════════════════════════
+         PROCUREMENT REQUESTS SECTION
+      ══════════════════════════════════════════ */
+      const procWrap=document.createElement('div');
+      procWrap.style.cssText='border-top:0.5px solid rgba(255,255,255,0.07);';
+      procWrap.innerHTML=`
+        <div onclick="toggleSection(this)" style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1.25rem;cursor:pointer;background:rgba(255,255,255,0.02);">
+          <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;">📦 Procurement Requests</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button onclick="event.stopPropagation();openAddProcurement('${branch.code}')" style="font-size:10px;padding:2px 10px;border-radius:6px;background:rgba(167,139,250,0.1);border:0.5px solid rgba(167,139,250,0.3);color:#a78bfa;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Add</button>
+            <span class="si" style="color:#64748b;font-size:11px;transition:transform 0.2s;transform:rotate(-90deg);">▼</span>
+          </div>
+        </div>
+        <div style="display:none;padding:0 1.25rem 0.75rem;">
+          <div id="proc_${cardId}" style="overflow-x:auto;"></div>
+        </div>`;
+      card.appendChild(procWrap);
+      setTimeout(()=>renderProcurement(branch.code, cardId), 0);
+
+      /* ══════════════════════════════════════════
+         OUTSTANDING ACTIONS SECTION
+      ══════════════════════════════════════════ */
+      const outWrap=document.createElement('div');
+      outWrap.style.cssText='border-top:0.5px solid rgba(255,255,255,0.07);';
+      outWrap.innerHTML=`
+        <div onclick="toggleSection(this)" style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1.25rem;cursor:pointer;background:rgba(255,255,255,0.02);">
+          <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;">⚡ Outstanding Actions</span>
+          <span class="si" style="color:#64748b;font-size:11px;transition:transform 0.2s;transform:rotate(-90deg);">▼</span>
+        </div>
+        <div style="display:none;padding:0 1.25rem 0.75rem;">
+          <div id="out_${cardId}" style="overflow-x:auto;"></div>
+        </div>`;
+      card.appendChild(outWrap);
+      setTimeout(()=>renderOutstanding(branch.code, cardId), 0);
+
+      /* ══════════════════════════════════════════
+         ACTIVITY TIMELINE SECTION
+      ══════════════════════════════════════════ */
+      const actWrap=document.createElement('div');
+      actWrap.style.cssText='border-top:0.5px solid rgba(255,255,255,0.07);';
+      actWrap.innerHTML=`
+        <div onclick="toggleSection(this)" style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1.25rem;cursor:pointer;background:rgba(255,255,255,0.02);">
+          <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;">🕐 Activity Timeline</span>
+          <span class="si" style="color:#64748b;font-size:11px;transition:transform 0.2s;transform:rotate(-90deg);">▼</span>
+        </div>
+        <div style="display:none;padding:0 1.25rem 0.75rem;">
+          <div id="act_${cardId}"></div>
+        </div>`;
+      card.appendChild(actWrap);
+      setTimeout(()=>renderActivityTimeline(branch.code, cardId), 0);
+
+      /* ══════════════════════════════════════════
+         WEEKLY FOLLOW-UP BUTTON
+      ══════════════════════════════════════════ */
+      const wfuWrap=document.createElement('div');
+      wfuWrap.style.cssText='border-top:0.5px solid rgba(255,255,255,0.07);padding:0.6rem 1.25rem;display:flex;gap:8px;flex-wrap:wrap;';
+      wfuWrap.innerHTML=`
+        <button onclick="openWeeklyFollowup('${branch.code}')" style="font-size:10px;padding:4px 12px;border-radius:6px;background:rgba(14,116,144,0.1);border:0.5px solid rgba(14,116,144,0.3);color:#22d3ee;cursor:pointer;font-family:'DM Sans',sans-serif;">📧 Weekly Follow-up</button>`;
+      card.appendChild(wfuWrap);
+
       return card;
     }
 
@@ -1853,9 +1939,569 @@
       document.getElementById('report-branch-count').textContent = count+' branch'+(count!==1?'es':'')+' selected';
     }
 
+    /* ════════════════════════════════════════════════════════
+       SHARED HELPERS
+    ════════════════════════════════════════════════════════ */
+    function toggleSection(hdr){
+      const body=hdr.nextElementSibling;
+      const icon=hdr.querySelector('.si');
+      const open=body.style.display==='none';
+      body.style.display=open?'block':'none';
+      if(icon) icon.style.transform=open?'rotate(0deg)':'rotate(-90deg)';
+    }
+    function closeModal(id){ document.getElementById(id).style.display='none'; }
+
+    /* ══════════════════════════════════════════════════════
+       PROCUREMENT REQUESTS
+    ══════════════════════════════════════════════════════ */
+    let procCache={};  /* branchCode -> [{...}] */
+
+    const PROC_OWNER_DEFAULT={'Fridges & Freezers':'Eissa','Shelves':'Eissa','Soft Assets':'Dalal','Other':''};
+
+    function procGroupChange(){
+      const g=document.getElementById('proc-asset-group').value;
+      const def=PROC_OWNER_DEFAULT[g];
+      if(def) document.getElementById('proc-owner').value=def;
+    }
+
+    function openAddProcurement(branch){
+      document.getElementById('proc-modal-title').textContent='📦 Add Procurement Request — '+branch;
+      document.getElementById('proc-edit-id').value='';
+      document.getElementById('proc-edit-branch').value=branch;
+      document.getElementById('proc-asset-group').value='Fridges & Freezers';
+      document.getElementById('proc-owner').value='Eissa';
+      document.getElementById('proc-req-no').value='';
+      document.getElementById('proc-req-date').value=new Date().toISOString().split('T')[0];
+      document.getElementById('proc-status').value='Requested';
+      document.getElementById('proc-eta').value='';
+      document.getElementById('proc-remarks').value='';
+      document.getElementById('proc-modal').style.display='flex';
+    }
+
+    function openEditProcurement(id, branch, cardId){
+      const items=procCache[branch]||[];
+      const item=items.find(x=>x.ID===id);
+      if(!item) return;
+      document.getElementById('proc-modal-title').textContent='📦 Edit Procurement Request — '+branch;
+      document.getElementById('proc-edit-id').value=id;
+      document.getElementById('proc-edit-branch').value=branch;
+      document.getElementById('proc-asset-group').value=item['Asset Group']||'Other';
+      document.getElementById('proc-owner').value=item['Request Owner']||'Eissa';
+      document.getElementById('proc-req-no').value=item['Request Number']||'';
+      document.getElementById('proc-req-date').value=item['Request Date']||'';
+      document.getElementById('proc-status').value=item['Status']||'Requested';
+      document.getElementById('proc-eta').value=item['ETA']||'';
+      document.getElementById('proc-remarks').value=item['Remarks']||'';
+      document.getElementById('proc-modal').style.display='flex';
+    }
+
+    async function saveProcurement(){
+      const id        = document.getElementById('proc-edit-id').value.trim();
+      const branch    = document.getElementById('proc-edit-branch').value.trim();
+      const group     = document.getElementById('proc-asset-group').value;
+      const owner     = document.getElementById('proc-owner').value;
+      const reqNo     = document.getElementById('proc-req-no').value.trim();
+      const reqDate   = document.getElementById('proc-req-date').value;
+      const status    = document.getElementById('proc-status').value;
+      const eta       = document.getElementById('proc-eta').value;
+      const remarks   = document.getElementById('proc-remarks').value.trim();
+      const now       = new Date().toLocaleString('en-GB');
+      const action    = id ? 'updateProcurement' : 'addProcurement';
+      const payload   = { action, id, branch, assetGroup:group, owner, reqNo, reqDate, status, eta, remarks, user:currentUser||'Unknown', timestamp:now };
+      await fetch(APPS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      logActivity(branch, id?'Procurement Updated':'Procurement Added', 'Status', '', status, `${group} — ${reqNo}`);
+      closeModal('proc-modal');
+      /* Refresh cache */
+      delete procCache[branch];
+      const cardId='tc_'+branch.replace(/[^a-zA-Z0-9]/g,'_');
+      setTimeout(()=>renderProcurement(branch,cardId),400);
+      showSaveToast('Procurement saved');
+    }
+
+    async function deleteProcurement(id, branch, cardId){
+      if(!confirm('Delete this procurement request?')) return;
+      await fetch(APPS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'deleteProcurement',id,user:currentUser||'Unknown'})});
+      logActivity(branch,'Procurement Deleted','ID',id,'','');
+      delete procCache[branch];
+      setTimeout(()=>renderProcurement(branch,cardId),400);
+      showSaveToast('Deleted');
+    }
+
+    async function renderProcurement(branch, cardId){
+      const container=document.getElementById('proc_'+cardId);
+      if(!container) return;
+      if(!procCache[branch]){
+        try{
+          const r=await fetchSheet('Procurement Tracking');
+          /* Group all rows; cache per branch */
+          const all={};
+          (r.rows||[]).forEach(row=>{
+            const b=(row['Branch Code']||'').trim();
+            if(!all[b]) all[b]=[];
+            all[b].push(row);
+          });
+          /* Merge into cache */
+          Object.keys(all).forEach(b=>{ procCache[b]=all[b]; });
+          if(!procCache[branch]) procCache[branch]=[];
+        } catch(e){ procCache[branch]=[]; }
+      }
+      const items=procCache[branch]||[];
+      if(!items.length){
+        container.innerHTML='<p style="font-size:11px;color:#475569;padding:6px 0;">No procurement requests yet.</p>';
+        return;
+      }
+      const sbClass={'Requested':'sb-requested','PO Created':'sb-po','In Transit':'sb-transit','Delivered':'sb-delivered'};
+      container.innerHTML=`<table class="proc-table">
+        <thead><tr><th>Asset Group</th><th>Owner</th><th>Request No.</th><th>Status</th><th>ETA</th><th>Remarks</th><th></th></tr></thead>
+        <tbody>${items.map(it=>`<tr>
+          <td style="font-weight:600;color:#e2e8f0;">${it['Asset Group']||'—'}</td>
+          <td><span class="user-badge badge-${(it['Request Owner']||'').toLowerCase()}">${it['Request Owner']||'—'}</span></td>
+          <td style="font-family:'DM Mono',monospace;color:#22d3ee;">${it['Request Number']||'—'}</td>
+          <td><span class="sb ${sbClass[it['Status']]||'sb-requested'}">${it['Status']||'—'}</span></td>
+          <td style="color:#94a3b8;font-size:10px;">${it['ETA']||'—'}</td>
+          <td style="color:#64748b;font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it['Remarks']||'—'}</td>
+          <td style="white-space:nowrap;">
+            <button onclick="openEditProcurement('${it['ID']}','${branch}','${cardId}')" style="font-size:10px;padding:1px 7px;border-radius:4px;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.1);color:#94a3b8;cursor:pointer;font-family:'DM Sans',sans-serif;">✎</button>
+            <button onclick="deleteProcurement('${it['ID']}','${branch}','${cardId}')" style="font-size:10px;padding:1px 7px;border-radius:4px;background:rgba(248,113,113,0.08);border:0.5px solid rgba(248,113,113,0.2);color:#f87171;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:3px;">✕</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       OUTSTANDING ACTIONS
+    ══════════════════════════════════════════════════════ */
+    let outCache={};  /* branchCode -> [{...}] */
+
+    const FRIDGE_ASSETS=new Set(['1 Door Chiller','2 Door Chiller','3 Door Chiller','1 Door Freezer','2 Door Freezer','3 Door Freezer','Freebolt','Heavy Rack','Heavyrack','Coldroom']);
+    const SOFT_ASSETS  =new Set(['Bin Stickers','Cleaning Supplies','First Aid Kit','Stationery','File Drawer','Captains Chairs','Handshake Cabinet','Consumables']);
+
+    function defaultOwner(asset){
+      if(FRIDGE_ASSETS.has(asset)) return 'Eissa';
+      if(SOFT_ASSETS.has(asset))   return 'Dalal';
+      return 'Eissa';
+    }
+
+    function calcDaysOutstanding(dateStr){
+      if(!dateStr) return 0;
+      const parts=dateStr.split('/');
+      if(parts.length<3) return 0;
+      const d=new Date(parseInt(parts[2]),parseInt(parts[1])-1,parseInt(parts[0]));
+      return Math.max(0,Math.floor((Date.now()-d.getTime())/(1000*86400)));
+    }
+
+    function calcEscalation(asset, priority, days, branchStatus){
+      if(['Critical','Essential'].includes(priority)) return 'Yes';
+      if(days>7) return 'Yes';
+      if(branchStatus==='Live') return 'Yes';
+      return 'No';
+    }
+
+    async function renderOutstanding(branch, cardId){
+      const container=document.getElementById('out_'+cardId);
+      if(!container) return;
+
+      /* Load saved overrides from sheet */
+      if(!outCache[branch]){
+        try{
+          const r=await fetchSheet('Outstanding Actions');
+          const all={};
+          (r.rows||[]).forEach(row=>{
+            const b=(row['Branch Code']||'').trim();
+            if(!all[b]) all[b]=[];
+            all[b].push(row);
+          });
+          Object.keys(all).forEach(b=>{outCache[b]=all[b];});
+          if(!outCache[branch]) outCache[branch]=[];
+        } catch(e){ outCache[branch]=[]; }
+      }
+
+      const branchStatus=trackerBranches.find(b=>b.code===branch)?.status||'';
+      const assets=trackerData.filter(r=>(r['Branch Code']||'').trim()===branch);
+      const fq=qtyData[branch]||{};
+      const saved=outCache[branch]||[];
+      const savedMap={};
+      saved.forEach(s=>{ savedMap[(s['Asset']||'').trim()]=s; });
+
+      /* Build outstanding list from live data */
+      const outstanding=[];
+
+      assets.forEach(r=>{
+        const asset=(r['Asset']||'').trim();
+        const priority=r['Priority']||'';
+        const status=r['Asset Status']||'None';
+        const isOut = status==='Not Received'||status==='Delivered';
+        const isHighPri=['Critical','Essential','High'].includes(priority);
+        if(!isOut&&!(isHighPri&&status==='Not Received')) return;
+
+        const sv=savedMap[asset]||{};
+        const firstDate=sv['First Outstanding Date']||new Date().toLocaleDateString('en-GB');
+        const days=calcDaysOutstanding(firstDate);
+        const esc=sv['Escalation Required']||calcEscalation(asset,priority,days,branchStatus);
+        outstanding.push({
+          asset, priority, status,
+          owner:       sv['Responsible Owner']||defaultOwner(asset),
+          nextAction:  sv['Next Action']||( status==='Delivered'?'Waiting DN':'Waiting Delivery'),
+          eta:         sv['ETA']||'',
+          remarks:     sv['Remarks']||'',
+          firstDate, days, esc,
+          id:          sv['ID']||''
+        });
+      });
+
+      /* Qty shortages */
+      QTY_ITEMS.forEach(item=>{
+        const req=parseInt(fq[item.req]||0)||0, rec=parseInt(fq[item.rec]||0)||0;
+        if(req>0&&rec<req){
+          const asset=item.label+' (Qty)';
+          const sv=savedMap[asset]||{};
+          const firstDate=sv['First Outstanding Date']||new Date().toLocaleDateString('en-GB');
+          const days=calcDaysOutstanding(firstDate);
+          outstanding.push({
+            asset, priority:'High', status:'Qty Shortage',
+            reqQty:req, recQty:rec, remQty:req-rec,
+            owner:sv['Responsible Owner']||'Eissa',
+            nextAction:sv['Next Action']||'Waiting Delivery',
+            eta:sv['ETA']||'', remarks:sv['Remarks']||'',
+            firstDate, days, esc:sv['Escalation Required']||(days>7?'Yes':'No'),
+            id:sv['ID']||''
+          });
+        }
+      });
+
+      if(!outstanding.length){
+        container.innerHTML='<p style="font-size:11px;color:#4ade80;padding:6px 0;">✓ No outstanding actions.</p>';
+        return;
+      }
+
+      const priColor={Essential:'#f87171',Critical:'#f87171',High:'#fbbf24',Medium:'#22d3ee',Low:'#4ade80'};
+      container.innerHTML=`<table class="out-table">
+        <thead><tr><th>Asset</th><th>Priority</th><th>Status</th><th>Owner</th><th>Next Action</th><th>ETA</th><th>Days</th><th>Esc.</th><th></th></tr></thead>
+        <tbody>${outstanding.map((o,i)=>`<tr>
+          <td style="font-weight:600;color:#e2e8f0;min-width:130px;">${o.asset}</td>
+          <td><span style="color:${priColor[o.priority]||'#94a3b8'};font-size:10px;font-weight:600;">${o.priority||'—'}</span></td>
+          <td style="font-size:10px;color:#94a3b8;">${o.status}</td>
+          <td><span class="user-badge badge-${(o.owner||'').toLowerCase().split(' ')[0]}">${o.owner||'—'}</span></td>
+          <td style="font-size:10px;color:#94a3b8;max-width:130px;">${o.nextAction||'—'}</td>
+          <td style="font-size:10px;color:#64748b;">${o.eta||'—'}</td>
+          <td style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:${o.days>7?'#f87171':'#94a3b8'};">${o.days}</td>
+          <td style="text-align:center;"><span class="${o.esc==='Yes'?'badge-esc':'badge-ok'}">${o.esc}</span></td>
+          <td><button onclick="openEditOutstanding('${branch}','${cardId}',${i})" style="font-size:10px;padding:1px 7px;border-radius:4px;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.1);color:#94a3b8;cursor:pointer;font-family:'DM Sans',sans-serif;">✎</button></td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+
+      /* Store outstanding data on the container for edit access */
+      container._outstanding=outstanding;
+    }
+
+    function openEditOutstanding(branch, cardId, idx){
+      const container=document.getElementById('out_'+cardId);
+      const o=container?._outstanding?.[idx];
+      if(!o) return;
+      document.getElementById('out-edit-id').value=o.id||'';
+      document.getElementById('out-edit-branch').value=branch;
+      document.getElementById('out-edit-asset').value=o.asset;
+      document.getElementById('out-edit-label').textContent=o.asset+' — '+o.status;
+      document.getElementById('out-owner').value=o.owner||'Eissa';
+      document.getElementById('out-next-action').value=o.nextAction||'Waiting Delivery';
+      document.getElementById('out-eta').value=o.eta||'';
+      document.getElementById('out-escalation').value=o.esc||'No';
+      document.getElementById('out-remarks').value=o.remarks||'';
+      document.getElementById('out-modal').style.display='flex';
+    }
+
+    async function saveOutstanding(){
+      const id         = document.getElementById('out-edit-id').value.trim();
+      const branch     = document.getElementById('out-edit-branch').value.trim();
+      const asset      = document.getElementById('out-edit-asset').value.trim();
+      const owner      = document.getElementById('out-owner').value;
+      const nextAction = document.getElementById('out-next-action').value;
+      const eta        = document.getElementById('out-eta').value;
+      const esc        = document.getElementById('out-escalation').value;
+      const remarks    = document.getElementById('out-remarks').value.trim();
+      const now        = new Date().toLocaleString('en-GB');
+      const payload    = { action:'saveOutstanding', id, branch, asset, owner, nextAction, eta, escalation:esc, remarks, user:currentUser||'Unknown', timestamp:now, firstDate:new Date().toLocaleDateString('en-GB') };
+      await fetch(APPS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      logActivity(branch,'Outstanding Updated','Next Action','',nextAction,asset);
+      closeModal('out-modal');
+      delete outCache[branch];
+      const cardId='tc_'+branch.replace(/[^a-zA-Z0-9]/g,'_');
+      setTimeout(()=>renderOutstanding(branch,cardId),400);
+      showSaveToast('Outstanding action saved');
+    }
+
+    /* ══════════════════════════════════════════════════════
+       ACTIVITY TIMELINE
+    ══════════════════════════════════════════════════════ */
+    let actCache={};
+
+    const ACT_DOT_CLASS={
+      'Branch Status Changed':'warn','Asset Status Changed':'ok','DN Link Added':'ok',
+      'Note Updated':'','Procurement Added':'ok','Procurement Updated':'',
+      'Procurement Deleted':'err','Outstanding Updated':'warn','Weekly Follow-up':'',
+    };
+
+    async function renderActivityTimeline(branch, cardId){
+      const container=document.getElementById('act_'+cardId);
+      if(!container) return;
+      if(!actCache[branch]){
+        try{
+          const r=await fetchSheet('Activity Log');
+          const all={};
+          (r.rows||[]).forEach(row=>{
+            const b=(row['Branch Code']||'').trim();
+            if(!all[b]) all[b]=[];
+            all[b].push(row);
+          });
+          Object.keys(all).forEach(b=>{actCache[b]=all[b];});
+          if(!actCache[branch]) actCache[branch]=[];
+        } catch(e){ actCache[branch]=[]; }
+      }
+      const entries=(actCache[branch]||[]).slice(-20).reverse();
+      if(!entries.length){
+        container.innerHTML='<p style="font-size:11px;color:#475569;padding:6px 0;">No activity recorded yet.</p>';
+        return;
+      }
+      container.innerHTML=entries.map(e=>{
+        const dotCls=ACT_DOT_CLASS[e['Action Type']]||'';
+        return `<div class="timeline-entry">
+          <div class="tl-dot ${dotCls}"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;">
+              <span style="font-size:11px;font-weight:600;color:#e2e8f0;">${e['Action Type']||''}</span>
+              <span class="user-badge badge-${(e['User']||'').toLowerCase()}">${e['User']||''}</span>
+              <span style="font-size:10px;color:#475569;margin-left:auto;">${e['Timestamp']||''}</span>
+            </div>
+            ${e['Field Changed']?`<div style="font-size:10px;color:#64748b;margin-top:2px;">${e['Field Changed']}${e['New Value']?' → <span style="color:#94a3b8;">'+e['New Value']+'</span>':''}</div>`:''}
+            ${e['Notes']?`<div style="font-size:10px;color:#475569;margin-top:1px;">${e['Notes']}</div>`:''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function logActivity(branch, actionType, field, oldVal, newVal, notes){
+      const now=new Date().toLocaleString('en-GB');
+      const id='AL_'+Date.now();
+      const payload={action:'logActivity',id,branch,actionType,field,oldVal,newVal,notes,user:currentUser||'Unknown',timestamp:now};
+      await fetch(APPS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      /* Update local cache */
+      if(!actCache[branch]) actCache[branch]=[];
+      actCache[branch].push({'ID':id,'Timestamp':now,'User':currentUser||'Unknown','Branch Code':branch,'Action Type':actionType,'Field Changed':field,'Old Value':oldVal,'New Value':newVal,'Notes':notes});
+      const cardId='tc_'+branch.replace(/[^a-zA-Z0-9]/g,'_');
+      renderActivityTimeline(branch,cardId);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       WEEKLY FOLLOW-UP GENERATOR
+    ══════════════════════════════════════════════════════ */
+    function openWeeklyFollowup(branch){
+      document.getElementById('wfu-branch-label').textContent=branch;
+      const text=buildFollowupText(branch);
+      document.getElementById('wfu-text').value=text;
+      document.getElementById('wfu-modal').style.display='flex';
+      logActivity(branch,'Weekly Follow-up','','','',branch);
+    }
+
+    function copyFollowup(){
+      const ta=document.getElementById('wfu-text');
+      ta.select();
+      document.execCommand('copy');
+      showSaveToast('Copied to clipboard!');
+    }
+
+    function buildFollowupText(branch){
+      const branchStatus=trackerBranches.find(b=>b.code===branch)?.status||'—';
+      const assets=trackerData.filter(r=>(r['Branch Code']||'').trim()===branch);
+      const fq=qtyData[branch]||{};
+      const total=assets.filter(r=>r['Asset Status']&&r['Asset Status']!=='None').length||1;
+      const received=assets.filter(r=>r['Asset Status']==='Received').length;
+      const delivered=assets.filter(r=>r['Asset Status']==='Delivered').length;
+      const notRec=assets.filter(r=>r['Asset Status']==='Not Received').length;
+      const pct=Math.round(received/total*100);
+
+      /* Critical completion */
+      const critAssets=assets.filter(r=>['Critical','Essential'].includes(r['Priority']));
+      const critTotal=critAssets.length||1;
+      const critRec=critAssets.filter(r=>r['Asset Status']==='Received').length;
+      const critPct=Math.round(critRec/critTotal*100);
+
+      /* DN completion */
+      const dnAssets=assets.filter(r=>r['D.N. Signed']&&r['D.N. Signed'].startsWith('http'));
+      const dnNeeded=assets.filter(r=>['Received','Delivered'].includes(r['Asset Status'])).length||1;
+      const dnPct=Math.round(dnAssets.length/dnNeeded*100);
+
+      /* Procurement */
+      const procs=procCache[branch]||[];
+      const procLines=procs.length
+        ? procs.map(p=>`  • ${p['Asset Group']}: Request No. ${p['Request Number']||'N/A'} — ${p['Status']||'—'} — ETA: ${p['ETA']||'N/A'}`).join('\n')
+        : '  • No procurement requests recorded.';
+
+      /* Outstanding */
+      const container=document.getElementById('out_tc_'+branch.replace(/[^a-zA-Z0-9]/g,'_'));
+      const outItems=container?._outstanding||[];
+      const outLines=outItems.filter(o=>o.nextAction!=='Completed').map(o=>`  • ${o.asset} — Owner: ${o.owner} — Next Action: ${o.nextAction}${o.eta?' — ETA: '+o.eta:''}`).join('\n')||'  • No outstanding actions.';
+
+      /* Missing DNs */
+      const missDN=assets.filter(r=>['Received','Delivered'].includes(r['Asset Status'])&&!(r['D.N. Signed']&&r['D.N. Signed'].startsWith('http')));
+      const dnLines=missDN.length? missDN.map(r=>`  • ${r['Asset']||''} — Missing Signed D.N.`).join('\n'):'  • All D.N. complete.';
+
+      /* Actions by owner */
+      const byOwner={};
+      outItems.filter(o=>o.nextAction!=='Completed').forEach(o=>{
+        if(!byOwner[o.owner]) byOwner[o.owner]=[];
+        byOwner[o.owner].push(o.asset);
+      });
+      const actionLines=Object.keys(byOwner).length
+        ? Object.entries(byOwner).map(([own,list])=>`  • ${own}: Follow up on ${list.join(', ')}`).join('\n')
+        : '  • No specific actions required.';
+
+      const today=new Date().toLocaleDateString('en-GB');
+
+      return `Subject: Weekly Receiving Update — ${branch}
+
+Date: ${today}
+
+Dear Team,
+
+Please find below the weekly receiving update for ${branch}.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BRANCH STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Current Status:           ${branchStatus}
+  • Receiving Completion:     ${pct}%
+  • Critical Asset Completion: ${critPct}%
+  • D.N. Completion:          ${dnPct}%
+  • Assets: ${received} Received | ${delivered} Delivered | ${notRec} Not Received
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROCUREMENT REQUESTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${procLines}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTSTANDING ASSETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${outLines}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MISSING / PENDING D.N.S
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${dnLines}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ACTIONS REQUIRED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${actionLines}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEXT STEPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Continue follow-up until all assets and D.N.s are completed.
+  • Escalate any items outstanding for more than 7 days.
+  • Confirm ETA updates from suppliers where applicable.
+
+Best regards,
+${currentUser||'Khalid'}`;
+    }
+
     function getReportBranches() {
       return [...document.querySelectorAll('#monthly-report-modal input[type=checkbox]:checked')].map(c=>c.value);
     }
   </script>
+  <!-- ══ PROCUREMENT MODAL ══ -->
+  <div id="proc-modal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 id="proc-modal-title">📦 Add Procurement Request</h3>
+      <div class="modal-scroll">
+        <input type="hidden" id="proc-edit-id" />
+        <input type="hidden" id="proc-edit-branch" />
+        <div class="form-row">
+          <div><label class="form-label">Asset Group</label>
+            <select id="proc-asset-group" class="form-select" onchange="procGroupChange()">
+              <option>Fridges & Freezers</option><option>Shelves</option><option>Soft Assets</option><option>Other</option>
+            </select></div>
+          <div><label class="form-label">Request Owner</label>
+            <select id="proc-owner" class="form-select">
+              <option>Eissa</option><option>Dalal</option><option>Other</option>
+            </select></div>
+        </div>
+        <div class="form-row">
+          <div><label class="form-label">Request Number</label>
+            <input id="proc-req-no" class="form-input" placeholder="e.g. PR-2025-001" /></div>
+          <div><label class="form-label">Request Date</label>
+            <input id="proc-req-date" type="date" class="form-input" /></div>
+        </div>
+        <div class="form-row">
+          <div><label class="form-label">Status</label>
+            <select id="proc-status" class="form-select">
+              <option>Requested</option><option>PO Created</option><option>In Transit</option><option>Delivered</option>
+            </select></div>
+          <div><label class="form-label">ETA</label>
+            <input id="proc-eta" type="date" class="form-input" /></div>
+        </div>
+        <div class="form-row full"><label class="form-label">Remarks</label>
+          <textarea id="proc-remarks" class="form-input" rows="2" placeholder="Optional remarks..."></textarea></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;padding-top:0.75rem;border-top:0.5px solid rgba(255,255,255,0.07);">
+        <button class="btn" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:#94a3b8;" onclick="closeModal('proc-modal')">Cancel</button>
+        <button class="btn" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:#a78bfa;" onclick="saveProcurement()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ OUTSTANDING EDIT MODAL ══ -->
+  <div id="out-modal" class="modal-overlay">
+    <div class="modal-box" style="width:500px;">
+      <h3>⚡ Edit Outstanding Action</h3>
+      <div class="modal-scroll">
+        <input type="hidden" id="out-edit-id" />
+        <input type="hidden" id="out-edit-branch" />
+        <input type="hidden" id="out-edit-asset" />
+        <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+          <span id="out-edit-label" style="font-size:12px;color:#e2e8f0;font-weight:600;"></span>
+        </div>
+        <div class="form-row">
+          <div><label class="form-label">Responsible Owner</label>
+            <select id="out-owner" class="form-select">
+              <option>Eissa</option><option>Dalal</option><option>Area Manager</option><option>Store Manager</option><option>Khalid</option><option>Other</option>
+            </select></div>
+          <div><label class="form-label">Next Action</label>
+            <select id="out-next-action" class="form-select">
+              <option>Waiting Procurement Update</option><option>Waiting Delivery</option><option>Waiting Store Confirmation</option>
+              <option>Waiting DN</option><option>Need Replacement</option><option>Escalated</option><option>Completed</option>
+            </select></div>
+        </div>
+        <div class="form-row">
+          <div><label class="form-label">ETA</label>
+            <input id="out-eta" type="date" class="form-input" /></div>
+          <div><label class="form-label">Escalation Required</label>
+            <select id="out-escalation" class="form-select">
+              <option value="Yes">Yes</option><option value="No">No</option>
+            </select></div>
+        </div>
+        <div class="form-row full"><label class="form-label">Remarks</label>
+          <textarea id="out-remarks" class="form-input" rows="2"></textarea></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;padding-top:0.75rem;border-top:0.5px solid rgba(255,255,255,0.07);">
+        <button class="btn" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:#94a3b8;" onclick="closeModal('out-modal')">Cancel</button>
+        <button class="btn" style="background:rgba(34,211,238,0.1);border-color:rgba(34,211,238,0.3);color:#22d3ee;" onclick="saveOutstanding()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ WEEKLY FOLLOW-UP MODAL ══ -->
+  <div id="wfu-modal" class="modal-overlay">
+    <div class="modal-box" style="width:620px;">
+      <h3>📧 Weekly Follow-up — <span id="wfu-branch-label"></span></h3>
+      <div class="modal-scroll">
+        <textarea id="wfu-text" style="width:100%;min-height:420px;background:#0f1117;border:0.5px solid rgba(255,255,255,0.1);color:#e2e8f0;font-size:11px;padding:10px;border-radius:6px;font-family:'DM Mono',monospace;line-height:1.7;resize:vertical;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;padding-top:0.75rem;border-top:0.5px solid rgba(255,255,255,0.07);">
+        <button class="btn" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:#94a3b8;" onclick="closeModal('wfu-modal')">Close</button>
+        <button class="btn" style="background:rgba(74,222,128,0.1);border-color:rgba(74,222,128,0.3);color:#4ade80;" onclick="copyFollowup()">📋 Copy</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
