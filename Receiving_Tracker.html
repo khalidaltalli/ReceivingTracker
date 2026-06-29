@@ -2077,6 +2077,9 @@
     const SOFT_ASSETS  =new Set(['Bin Stickers','Cleaning Supplies','First Aid Kit','Stationery','File Drawer','Captains Chairs','Handshake Cabinet','Consumables']);
 
     function defaultOwner(asset){
+      /* Eissa = not yet ordered (fridges/shelves), Kamal = if Eissa ordered
+         Dalal = not yet ordered (soft assets), Mahyoub = if Dalal ordered
+         Default to Eissa for anything else */
       if(FRIDGE_ASSETS.has(asset)) return 'Eissa';
       if(SOFT_ASSETS.has(asset))   return 'Dalal';
       return 'Eissa';
@@ -2345,15 +2348,7 @@
       const missDN=assets.filter(r=>['Received','Delivered'].includes(r['Asset Status'])&&!(r['D.N. Signed']&&r['D.N. Signed'].startsWith('http')));
       const dnLines=missDN.length? missDN.map(r=>`  • ${r['Asset']||''} — Missing Signed D.N.`).join('\n'):'  • All D.N. complete.';
 
-      /* Actions by owner */
-      const byOwner={};
-      outItems.filter(o=>o.nextAction!=='Completed').forEach(o=>{
-        if(!byOwner[o.owner]) byOwner[o.owner]=[];
-        byOwner[o.owner].push(o.asset);
-      });
-      const actionLines=Object.keys(byOwner).length
-        ? Object.entries(byOwner).map(([own,list])=>`  • ${own}: Follow up on ${list.join(', ')}`).join('\n')
-        : '  • No specific actions required.';
+      /* Actions by owner removed per request */
 
       const today=new Date().toLocaleDateString('en-GB');
 
@@ -2368,10 +2363,10 @@ Please find below the weekly receiving update for ${branch}.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BRANCH STATUS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  • Current Status:           ${branchStatus}
-  • Receiving Completion:     ${pct}%
+  • Current Status:            ${branchStatus}
+  • Receiving Completion:      ${pct}%
   • Critical Asset Completion: ${critPct}%
-  • D.N. Completion:          ${dnPct}%
+  • D.N. Completion:           ${dnPct}%
   • Assets: ${received} Received | ${delivered} Delivered | ${notRec} Not Received
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2388,11 +2383,6 @@ ${outLines}
 MISSING / PENDING D.N.S
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${dnLines}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ACTIONS REQUIRED
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${actionLines}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 NEXT STEPS
@@ -2464,7 +2454,7 @@ ${currentUser||'Khalid'}`;
         <div class="form-row">
           <div><label class="form-label">Responsible Owner</label>
             <select id="out-owner" class="form-select">
-              <option>Eissa</option><option>Dalal</option><option>Area Manager</option><option>Store Manager</option><option>Khalid</option><option>Other</option>
+              <option>Eissa</option><option>Kamal</option><option>Dalal</option><option>Mahyoub</option><option>Other</option>
             </select></div>
           <div><label class="form-label">Next Action</label>
             <select id="out-next-action" class="form-select">
