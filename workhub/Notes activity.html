@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Work Hub — Notes & Activity</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <a href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">
+      <img src="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/logo.png" alt="Logo">
+    </a>
+  </div>
+  <div class="header-center">
+    <h1>My Work Hub</h1>
+    <p>Private Workflow — Space Planning &amp; Store Improvement</p>
+  </div>
+  <div class="header-right">
+    <span class="live-badge"><span class="live-dot"></span>Private</span>
+    <a class="back-link" href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">&larr; Main Platform</a>
+  </div>
+</div>
+<nav class="whnav">
+  <a href="index.html">Dashboard</a>
+  <a href="branch-queue.html">Branch Work Queue</a>
+  <a href="layout-prep.html">Layout Preparation</a>
+  <a href="asset-receiving.html">Asset Receiving</a>
+  <a href="procurement.html">Procurement Follow-up</a>
+  <a href="delivery-notes.html">Delivery Notes Follow-up</a>
+  <a href="notes-activity.html" class="active">Notes & Activity</a>
+  <a href="time-tracking.html">Time Tracking</a>
+  <a href="reports.html">Personal Reports</a>
+</nav>
+<main>
+  <div class="panel">
+    <label for="branchSelect">Filter by Branch (optional)</label>
+    <select id="branchSelect"><option value="">All branches</option></select>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">Add Note</h3>
+    <textarea id="noteText" rows="3" placeholder="Quick note about this branch or your work"></textarea>
+    <button id="addNoteBtn">Save Note</button>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">Timeline</h3>
+    <div class="timeline" id="timeline">Loading…</div>
+  </div>
+</main>
+
+<script src="api.js"></script>
+<script>
+let branchFilter = '';
+
+function fmtDate(s) {
+  if (!s) return '';
+  try { return new Date(s).toLocaleString(); } catch (e) { return s; }
+}
+
+async function loadTimeline() {
+  const [notes, activity] = await Promise.all([
+    WorkHub.getTab('Notes', branchFilter || undefined),
+    WorkHub.getTab('Activity Log', branchFilter || undefined)
+  ]);
+
+  const items = [
+    ...notes.map(n => ({ type: 'Note', ts: n.Created, branch: n['Branch Code'], body: n.Note })),
+    ...activity.map(a => ({ type: a['Action Type'] || 'Activity', ts: a.Timestamp, branch: a['Branch Code'], body: a.Details }))
+  ].sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+  document.getElementById('timeline').innerHTML = items.length
+    ? items.map(it => `
+        <div class="entry">
+          <div class="meta"><span class="tag">${it.type}</span>${it.branch ? it.branch + ' · ' : ''}${fmtDate(it.ts)}</div>
+          <div class="body">${it.body || ''}</div>
+        </div>`).join('')
+    : '<p style="font-size:13px; color:#888;">No notes or activity yet.</p>';
+}
+
+(async function () {
+  await WorkHub.requireAccess();
+  const branches = await WorkHub.getBranches();
+  const sel = document.getElementById('branchSelect');
+  sel.innerHTML = '<option value="">All branches</option>' +
+    branches.map(b => `<option value="${b.branchCode}">${b.branchCode}</option>`).join('');
+  sel.addEventListener('change', () => { branchFilter = sel.value; loadTimeline(); });
+
+  document.getElementById('addNoteBtn').addEventListener('click', async () => {
+    const text = document.getElementById('noteText').value.trim();
+    if (!text) return;
+    await WorkHub.saveRow('Notes', { 'Branch Code': branchFilter, 'Note': text });
+    document.getElementById('noteText').value = '';
+    loadTimeline();
+  });
+
+  loadTimeline();
+})();
+</script>
+</body>
+</html>
