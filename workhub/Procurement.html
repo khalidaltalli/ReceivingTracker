@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Work Hub — Procurement Follow-up</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <a href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">
+      <img src="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/logo.png" alt="Logo">
+    </a>
+  </div>
+  <div class="header-center">
+    <h1>My Work Hub</h1>
+    <p>Private Workflow — Space Planning &amp; Store Improvement</p>
+  </div>
+  <div class="header-right">
+    <span class="live-badge"><span class="live-dot"></span>Private</span>
+    <a class="back-link" href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">&larr; Main Platform</a>
+  </div>
+</div>
+<nav class="whnav">
+  <a href="index.html">Dashboard</a>
+  <a href="branch-queue.html">Branch Work Queue</a>
+  <a href="layout-prep.html">Layout Preparation</a>
+  <a href="asset-receiving.html">Asset Receiving</a>
+  <a href="procurement.html" class="active">Procurement Follow-up</a>
+  <a href="delivery-notes.html">Delivery Notes Follow-up</a>
+  <a href="notes-activity.html">Notes & Activity</a>
+  <a href="time-tracking.html">Time Tracking</a>
+  <a href="reports.html">Personal Reports</a>
+</nav>
+<main>
+  <div class="panel">
+    <label for="branchSelect">Select Branch</label>
+    <select id="branchSelect"><option>Loading branches…</option></select>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">New Procurement Request</h3>
+    <div class="grid2">
+      <div><label>Asset Group</label><input id="assetGroup" placeholder="e.g. Fridges"></div>
+      <div><label>Owner</label><input id="owner" placeholder="Who's responsible"></div>
+      <div><label>Request Number</label><input id="reqNo"></div>
+      <div><label>Request Date</label><input id="reqDate" type="date"></div>
+      <div><label>Status</label>
+        <select id="status">
+          <option>Requested</option><option>Approved</option><option>Ordered</option><option>Delivered</option><option>Delayed</option>
+        </select>
+      </div>
+      <div><label>ETA</label><input id="eta" type="date"></div>
+    </div>
+    <label>Remarks</label>
+    <input id="remarks">
+    <button id="addBtn">Add Request</button>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">Procurement Requests</h3>
+    <table>
+      <thead><tr><th>Asset Group</th><th>Owner</th><th>Req #</th><th>Status</th><th>ETA</th><th>Remarks</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="6">Select a branch above</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<script src="api.js"></script>
+<script>
+const TAB = 'Procurement Followup';
+let branchCode = '';
+
+async function load() {
+  if (!branchCode) return;
+  const rows = await WorkHub.getTab(TAB, branchCode);
+  document.getElementById('rows').innerHTML = rows.length
+    ? rows.map(r => `
+      <tr>
+        <td>${r['Asset Group'] || ''}</td>
+        <td>${r['Owner'] || ''}</td>
+        <td>${r['Request Number'] || ''}</td>
+        <td>
+          <select class="statusSel" data-id="${r.ID}">
+            ${['Requested','Approved','Ordered','Delivered','Delayed'].map(s => `<option ${r.Status===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </td>
+        <td>${r.ETA || '—'}</td>
+        <td>${r.Remarks || ''}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="6">No procurement requests yet for this branch</td></tr>';
+
+  document.querySelectorAll('.statusSel').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      await WorkHub.saveRow(TAB, { 'Status': sel.value }, sel.dataset.id);
+    });
+  });
+}
+
+(async function () {
+  await WorkHub.requireAccess();
+  const branches = await WorkHub.getBranches();
+  const sel = document.getElementById('branchSelect');
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    branches.map(b => `<option value="${b.branchCode}">${b.branchCode} (${b.status})</option>`).join('');
+  sel.addEventListener('change', () => { branchCode = sel.value; load(); });
+
+  document.getElementById('addBtn').addEventListener('click', async () => {
+    if (!branchCode) { alert('Select a branch first'); return; }
+    const assetGroup = document.getElementById('assetGroup').value.trim();
+    if (!assetGroup) { alert('Enter an asset group'); return; }
+    await WorkHub.saveRow(TAB, {
+      'Branch Code': branchCode,
+      'Asset Group': assetGroup,
+      'Owner': document.getElementById('owner').value,
+      'Request Number': document.getElementById('reqNo').value,
+      'Request Date': document.getElementById('reqDate').value,
+      'Status': document.getElementById('status').value,
+      'ETA': document.getElementById('eta').value,
+      'Remarks': document.getElementById('remarks').value
+    });
+    document.getElementById('assetGroup').value = '';
+    document.getElementById('owner').value = '';
+    document.getElementById('reqNo').value = '';
+    document.getElementById('remarks').value = '';
+    load();
+  });
+})();
+</script>
+</body>
+</html>
