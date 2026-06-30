@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Work Hub — Time Tracking</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <a href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">
+      <img src="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/logo.png" alt="Logo">
+    </a>
+  </div>
+  <div class="header-center">
+    <h1>My Work Hub</h1>
+    <p>Private Workflow — Space Planning &amp; Store Improvement</p>
+  </div>
+  <div class="header-right">
+    <span class="live-badge"><span class="live-dot"></span>Private</span>
+    <a class="back-link" href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">&larr; Main Platform</a>
+  </div>
+</div>
+<nav class="whnav">
+  <a href="index.html">Dashboard</a>
+  <a href="branch-queue.html">Branch Work Queue</a>
+  <a href="layout-prep.html">Layout Preparation</a>
+  <a href="asset-receiving.html">Asset Receiving</a>
+  <a href="procurement.html">Procurement Follow-up</a>
+  <a href="delivery-notes.html">Delivery Notes Follow-up</a>
+  <a href="notes-activity.html">Notes & Activity</a>
+  <a href="time-tracking.html" class="active">Time Tracking</a>
+  <a href="reports.html">Personal Reports</a>
+</nav>
+<main>
+  <div id="runningBanner"></div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">Start / Stop Timer</h3>
+    <label for="branchSelect">Branch</label>
+    <select id="branchSelect"><option>Loading branches…</option></select>
+    <label for="taskName">Task</label>
+    <input id="taskName" placeholder="What are you working on">
+    <button id="startBtn">Start Timer</button>
+    <button id="stopBtn" class="stop" style="display:none;">Stop Timer</button>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">Manual Entry</h3>
+    <div class="grid2">
+      <div><label>Branch</label><select id="manualBranch"></select></div>
+      <div><label>Task</label><input id="manualTask"></div>
+      <div><label>Start</label><input id="manualStart" type="datetime-local"></div>
+      <div><label>End</label><input id="manualEnd" type="datetime-local"></div>
+    </div>
+    <label>Notes</label>
+    <input id="manualNotes">
+    <button id="manualAddBtn">Add Entry</button>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">My Time Entries</h3>
+    <table>
+      <thead><tr><th>Branch</th><th>Task</th><th>Start</th><th>End</th><th>Minutes</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="5">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<script src="api.js"></script>
+<script>
+let branches = [];
+
+function minutesBetween(start, end) {
+  if (!start || !end) return '';
+  const ms = new Date(end) - new Date(start);
+  return ms > 0 ? Math.round(ms / 60000) : '';
+}
+
+async function loadEntries() {
+  const rows = await WorkHub.getTab('Time Tracking');
+  rows.sort((a, b) => new Date(b.Start) - new Date(a.Start));
+  document.getElementById('rows').innerHTML = rows.length
+    ? rows.map(r => `<tr><td>${r['Branch Code']||''}</td><td>${r.Task||''}</td><td>${r.Start||''}</td><td>${r.End||'(running)'}</td><td>${r['Duration Minutes']||''}</td></tr>`).join('')
+    : '<tr><td colspan="5">No time entries yet</td></tr>';
+
+  const running = rows.find(r => r.Start && !r.End);
+  const banner = document.getElementById('runningBanner');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  if (running) {
+    banner.innerHTML = `<div class="running-banner">Timer running: <b>${running.Task||''}</b> on <b>${running['Branch Code']||''}</b> since ${running.Start}</div>`;
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'inline-block';
+    stopBtn.dataset.id = running.ID;
+    stopBtn.dataset.start = running.Start;
+  } else {
+    banner.innerHTML = '';
+    startBtn.style.display = 'inline-block';
+    stopBtn.style.display = 'none';
+  }
+}
+
+(async function () {
+  await WorkHub.requireAccess();
+  branches = await WorkHub.getBranches();
+  const opts = '<option value="">— Select —</option>' + branches.map(b => `<option value="${b.branchCode}">${b.branchCode}</option>`).join('');
+  document.getElementById('branchSelect').innerHTML = opts;
+  document.getElementById('manualBranch').innerHTML = opts;
+
+  document.getElementById('startBtn').addEventListener('click', async () => {
+    const branch = document.getElementById('branchSelect').value;
+    const task = document.getElementById('taskName').value.trim();
+    if (!branch || !task) { alert('Select a branch and enter a task'); return; }
+    await WorkHub.saveRow('Time Tracking', {
+      'Branch Code': branch,
+      'Task': task,
+      'Start': new Date().toLocaleString()
+    });
+    document.getElementById('taskName').value = '';
+    loadEntries();
+  });
+
+  document.getElementById('stopBtn').addEventListener('click', async (e) => {
+    const id = e.target.dataset.id;
+    const start = e.target.dataset.start;
+    const end = new Date().toLocaleString();
+    await WorkHub.saveRow('Time Tracking', {
+      'End': end,
+      'Duration Minutes': minutesBetween(start, end)
+    }, id);
+    loadEntries();
+  });
+
+  document.getElementById('manualAddBtn').addEventListener('click', async () => {
+    const branch = document.getElementById('manualBranch').value;
+    const task = document.getElementById('manualTask').value.trim();
+    const start = document.getElementById('manualStart').value;
+    const end = document.getElementById('manualEnd').value;
+    if (!branch || !task || !start) { alert('Branch, task and start time are required'); return; }
+    await WorkHub.saveRow('Time Tracking', {
+      'Branch Code': branch,
+      'Task': task,
+      'Start': start ? new Date(start).toLocaleString() : '',
+      'End': end ? new Date(end).toLocaleString() : '',
+      'Duration Minutes': end ? minutesBetween(start, end) : '',
+      'Notes': document.getElementById('manualNotes').value
+    });
+    document.getElementById('manualTask').value = '';
+    document.getElementById('manualNotes').value = '';
+    loadEntries();
+  });
+
+  loadEntries();
+})();
+</script>
+</body>
+</html>
