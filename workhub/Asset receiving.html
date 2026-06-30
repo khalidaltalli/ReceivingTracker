@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Work Hub — Asset Receiving</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <a href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">
+      <img src="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/logo.png" alt="Logo">
+    </a>
+  </div>
+  <div class="header-center">
+    <h1>My Work Hub</h1>
+    <p>Private Workflow — Space Planning &amp; Store Improvement</p>
+  </div>
+  <div class="header-right">
+    <span class="live-badge"><span class="live-dot"></span>Private</span>
+    <a class="back-link" href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">&larr; Main Platform</a>
+  </div>
+</div>
+<nav class="whnav">
+  <a href="index.html">Dashboard</a>
+  <a href="branch-queue.html">Branch Work Queue</a>
+  <a href="layout-prep.html">Layout Preparation</a>
+  <a href="asset-receiving.html" class="active">Asset Receiving</a>
+  <a href="procurement.html">Procurement Follow-up</a>
+  <a href="delivery-notes.html">Delivery Notes Follow-up</a>
+  <a href="notes-activity.html">Notes & Activity</a>
+  <a href="time-tracking.html">Time Tracking</a>
+  <a href="reports.html">Personal Reports</a>
+</nav>
+<main>
+  <div class="panel">
+    <label for="branchSelect">Select Branch</label>
+    <select id="branchSelect"><option>Loading branches…</option></select>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">Receiving Checklist <span style="font-weight:400; font-size:12px; color:#888;">(live from main platform — read only here)</span></h3>
+    <table>
+      <thead><tr><th>Asset</th><th>Section</th><th>Priority</th><th>Asset Status</th></tr></thead>
+      <tbody id="checklistRows"><tr><td colspan="4">Select a branch above</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">My Follow-up Notes <span class="badge private">private</span></h3>
+    <label for="followAsset">Asset / Item</label>
+    <input id="followAsset" placeholder="e.g. 2D Fridge">
+    <label for="followEta">Expected / Follow-up Date</label>
+    <input id="followEta" type="date">
+    <label for="followNotes">Notes</label>
+    <input id="followNotes" placeholder="What's the holdup, who's responsible, next step">
+    <button id="addFollowBtn">Add Follow-up</button>
+
+    <table style="margin-top:18px;">
+      <thead><tr><th>Asset</th><th>Status</th><th>Notes</th><th>ETA</th></tr></thead>
+      <tbody id="followRows"><tr><td colspan="4">No follow-up items yet</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<script src="api.js"></script>
+<script>
+let branchCode = '';
+
+async function loadChecklist() {
+  const rows = await WorkHub.getMainTab('Receiving Checklist', branchCode);
+  document.getElementById('checklistRows').innerHTML = rows.length
+    ? rows.map(r => `<tr><td>${r['Asset'] || ''}</td><td>${r['Section'] || ''}</td><td>${r['Priority'] || ''}</td><td>${r['Asset Status'] || '—'}</td></tr>`).join('')
+    : '<tr><td colspan="4">No checklist data for this branch</td></tr>';
+}
+
+async function loadFollowups() {
+  const rows = await WorkHub.getTab('Receiving Work', branchCode);
+  document.getElementById('followRows').innerHTML = rows.length
+    ? rows.map(r => `
+      <tr>
+        <td>${r.Asset || ''}</td>
+        <td><select class="statusSel" data-id="${r.ID}">
+          <option ${r.Status === 'Pending' || !r.Status ? 'selected' : ''}>Pending</option>
+          <option ${r.Status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+        </select></td>
+        <td>${r.Notes || ''}</td>
+        <td>${r.ETA || '—'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4">No follow-up items yet</td></tr>';
+
+  document.querySelectorAll('.statusSel').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      await WorkHub.saveRow('Receiving Work', { 'Status': sel.value }, sel.dataset.id);
+    });
+  });
+}
+
+(async function () {
+  await WorkHub.requireAccess();
+  const branches = await WorkHub.getBranches();
+  const sel = document.getElementById('branchSelect');
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    branches.map(b => `<option value="${b.branchCode}">${b.branchCode} (${b.status})</option>`).join('');
+
+  sel.addEventListener('change', () => {
+    branchCode = sel.value;
+    if (branchCode) { loadChecklist(); loadFollowups(); }
+  });
+
+  document.getElementById('addFollowBtn').addEventListener('click', async () => {
+    if (!branchCode) { alert('Select a branch first'); return; }
+    const asset = document.getElementById('followAsset').value.trim();
+    if (!asset) { alert('Enter an asset/item'); return; }
+    await WorkHub.saveRow('Receiving Work', {
+      'Branch Code': branchCode,
+      'Asset': asset,
+      'Notes': document.getElementById('followNotes').value,
+      'ETA': document.getElementById('followEta').value,
+      'Status': 'Pending'
+    });
+    document.getElementById('followAsset').value = '';
+    document.getElementById('followNotes').value = '';
+    loadFollowups();
+  });
+})();
+</script>
+</body>
+</html>
