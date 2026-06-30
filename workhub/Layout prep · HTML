@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Work Hub — Layout Preparation</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <a href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">
+      <img src="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/logo.png" alt="Logo">
+    </a>
+  </div>
+  <div class="header-center">
+    <h1>My Work Hub</h1>
+    <p>Private Workflow — Space Planning &amp; Store Improvement</p>
+  </div>
+  <div class="header-right">
+    <span class="live-badge"><span class="live-dot"></span>Private</span>
+    <a class="back-link" href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">&larr; Main Platform</a>
+  </div>
+</div>
+<nav class="whnav">
+  <a href="index.html">Dashboard</a>
+  <a href="branch-queue.html">Branch Work Queue</a>
+  <a href="layout-prep.html" class="active">Layout Preparation</a>
+  <a href="asset-receiving.html">Asset Receiving</a>
+  <a href="procurement.html">Procurement Follow-up</a>
+  <a href="delivery-notes.html">Delivery Notes Follow-up</a>
+  <a href="notes-activity.html">Notes & Activity</a>
+  <a href="time-tracking.html">Time Tracking</a>
+  <a href="reports.html">Personal Reports</a>
+</nav>
+<main>
+  <div class="panel">
+    <label for="branchSelect">Select Branch</label>
+    <select id="branchSelect"><option>Loading branches…</option></select>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">Add Layout Item</h3>
+    <label for="itemName">Item</label>
+    <input id="itemName" placeholder="e.g. Confirm shelf positions, mark fridge zones">
+    <label for="itemEta">ETA</label>
+    <input id="itemEta" type="date">
+    <button id="addBtn">Add Item</button>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">Layout Checklist</h3>
+    <table>
+      <thead><tr><th>Item</th><th>ETA</th><th>Notes</th><th>Status</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="4">Select a branch above</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<script src="api.js"></script>
+<script>
+const TAB = 'Layout Work';
+let branchCode = '';
+
+async function load() {
+  if (!branchCode) return;
+  const items = await WorkHub.getTab(TAB, branchCode);
+  document.getElementById('rows').innerHTML = items.length
+    ? items.map(it => `
+      <tr>
+        <td>${it.Item || ''}</td>
+        <td>${it.ETA || '—'}</td>
+        <td><input data-id="${it.ID}" class="noteEdit" value="${(it.Notes || '').replace(/"/g,'&quot;')}" style="font-size:12px;"></td>
+        <td>
+          <select class="statusCell status-${it.Status || 'Pending'}" data-id="${it.ID}">
+            <option ${it.Status === 'Pending' || !it.Status ? 'selected' : ''}>Pending</option>
+            <option ${it.Status === 'Done' ? 'selected' : ''}>Done</option>
+          </select>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="4">No layout items yet for this branch</td></tr>';
+
+  document.querySelectorAll('.statusCell').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      await WorkHub.saveRow(TAB, { 'Status': sel.value }, sel.dataset.id);
+      load();
+    });
+  });
+  document.querySelectorAll('.noteEdit').forEach(inp => {
+    inp.addEventListener('blur', async () => {
+      await WorkHub.saveRow(TAB, { 'Notes': inp.value }, inp.dataset.id);
+    });
+  });
+}
+
+(async function () {
+  await WorkHub.requireAccess();
+  const branches = await WorkHub.getBranches();
+  const sel = document.getElementById('branchSelect');
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    branches.map(b => `<option value="${b.branchCode}">${b.branchCode} (${b.status})</option>`).join('');
+
+  sel.addEventListener('change', () => { branchCode = sel.value; load(); });
+
+  document.getElementById('addBtn').addEventListener('click', async () => {
+    if (!branchCode) { alert('Select a branch first'); return; }
+    const item = document.getElementById('itemName').value.trim();
+    if (!item) { alert('Enter an item'); return; }
+    await WorkHub.saveRow(TAB, {
+      'Branch Code': branchCode,
+      'Item': item,
+      'ETA': document.getElementById('itemEta').value,
+      'Status': 'Pending'
+    });
+    document.getElementById('itemName').value = '';
+    load();
+  });
+})();
+</script>
+</body>
+</html>
