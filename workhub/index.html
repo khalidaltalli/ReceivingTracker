@@ -4,6 +4,83 @@
 <meta charset="UTF-8">
 <title>My Work Hub — Dashboard</title>
 <meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <a href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">
+      <img src="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/logo.png" alt="Logo">
+    </a>
+  </div>
+  <div class="header-center">
+    <h1>My Work Hub</h1>
+    <p>Private Workflow — Space Planning &amp; Store Improvement</p>
+  </div>
+  <div class="header-right">
+    <span class="live-badge"><span class="live-dot"></span>Private</span>
+    <a class="back-link" href="https://khalidaltalli.github.io/Space-Planning-Store-Improvement/">&larr; Main Platform</a>
+  </div>
+</div>
+<nav class="whnav">
+  <a href="index.html">Dashboard</a>
+  <a href="branch-queue.html">Branch Work Queue</a>
+  <a href="layout-prep.html">Layout Preparation</a>
+  <a href="asset-receiving.html">Asset Receiving</a>
+  <a href="procurement.html">Procurement Follow-up</a>
+  <a href="delivery-notes.html">Delivery Notes Follow-up</a>
+  <a href="notes-activity.html">Notes & Activity</a>
+  <a href="time-tracking.html">Time Tracking</a>
+  <a href="reports.html">Personal Reports</a>
+</nav>
+<main>
+  <div class="cards" id="summaryCards">
+    <div class="card"><div class="num">…</div><div class="label">Receiving Branches</div></div>
+    <div class="card"><div class="num">…</div><div class="label">Live Branches</div></div>
+    <div class="card"><div class="num">…</div><div class="label">Open Tasks</div></div>
+  </div>
+  <h3>Branches in Receiving</h3>
+  <table>
+    <thead><tr><th>Branch Code</th><th>Status</th><th>Receiving Date</th></tr></thead>
+    <tbody id="branchRows"><tr><td colspan="3">Loading…</td></tr></tbody>
+  </table>
+</main>
+
+<script src="api.js"></script>
+<script>
+(async function () {
+  await WorkHub.requireAccess();
+
+  const branches = await WorkHub.getBranches();
+  const receiving = branches.filter(b => b.status === 'Receiving');
+  const live = branches.filter(b => b.status === 'Live');
+  let myTasks = [];
+  try { myTasks = await WorkHub.getTab('My Tasks'); } catch (e) { /* tab empty on first run */ }
+  const openTasks = myTasks.filter(t => t.Status !== 'Done');
+
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="card"><div class="num">${receiving.length}</div><div class="label">Receiving Branches</div></div>
+    <div class="card"><div class="num">${live.length}</div><div class="label">Live Branches</div></div>
+    <div class="card"><div class="num">${openTasks.length}</div><div class="label">Open Tasks</div></div>
+  `;
+
+  document.getElementById('branchRows').innerHTML = receiving.length
+    ? receiving.map(b => `
+        <tr>
+          <td><a href="branch-queue.html?branch=${encodeURIComponent(b.branchCode)}">${b.branchCode}</a></td>
+          <td><span class="status ${b.status}">${b.status}</span></td>
+          <td>${b.receivingDate || '—'}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="3">No branches in Receiving</td></tr>';
+})();
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Work Hub — Dashboard</title>
+<meta name="robots" content="noindex, nofollow">
 <style>
   body { font-family: -apple-system, Segoe UI, sans-serif; background:#f4f6f8; margin:0; color:#1a1a1a; }
   header { background:#1a3a5c; color:#fff; padding:18px 24px; }
