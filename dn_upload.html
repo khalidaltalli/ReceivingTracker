@@ -417,7 +417,7 @@
       statusText.textContent = 'Saving to Drive...';
       progressBar.style.width = '80%';
 
-      /* Use no-cors POST — can't read response directly */
+      /* Step 1 — upload file via no-cors POST */
       await fetch(APPS_URL, {
         method: 'POST',
         mode: 'no-cors',
@@ -425,13 +425,13 @@
         body: JSON.stringify(payload)
       });
 
-      /* Poll GET to retrieve the result by uploadId */
-      statusText.textContent = 'Confirming upload...';
-      progressBar.style.width = '90%';
+      /* Step 2 — poll until Apps Script finishes and returns the file URL */
+      statusText.textContent = 'Waiting for Drive...';
+      progressBar.style.width = '88%';
       let fileUrl = null;
       for (let attempt = 0; attempt < 20; attempt++) {
         await new Promise(r => setTimeout(r, 2000));
-        statusText.textContent = `Confirming upload... (${attempt+1}/20)`;
+        statusText.textContent = `Confirming... (${attempt+1}/20)`;
         try {
           const pollRes = await fetch(`${APPS_URL}?action=getUploadResult&uploadId=${uploadId}`);
           const pollData = await pollRes.json();
@@ -441,13 +441,33 @@
       }
 
       if (!fileUrl) {
-        /* Timeout — but file may have uploaded to Drive. Reload to check. */
         overlay.style.display = 'none';
-        showToast('⚠ Upload sent — refreshing to confirm...', false);
+        showToast('⚠ File saved to Drive but link not confirmed — refreshing...', false);
         setTimeout(()=>loadData(), 2000);
         return;
       }
 
+      progressBar.style.width = '94%';
+
+      /* Step 3 — write link to sheet as a SEPARATE no-cors POST */
+      statusText.textContent = 'Writing to sheet...';
+      await fetch(APPS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action:    'writeDNLink',
+          branch,
+          assets:    group.assets,
+          groupName: group.name,
+          fileUrl,
+          user:      currentUser,
+          timestamp: new Date().toLocaleString('en-GB')
+        })
+      });
+
+      /* Small delay to let sheet write complete */
+      await new Promise(r => setTimeout(r, 1500));
       progressBar.style.width = '100%';
 
       progressBar.style.width = '100%';
