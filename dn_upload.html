@@ -190,14 +190,15 @@ async function postAction(payload){
   try{
     res = await fetch(APPS_URL, {
       method:'POST',
-      headers:{'Content-Type':'text/plain'}, // avoids CORS preflight, Apps Script still parses it as JSON
+      redirect: 'follow',
+      headers:{'Content-Type':'text/plain'},
       body: JSON.stringify(payload)
     });
   }catch(err){
-    throw new Error('Network/CORS error — check the deployment is set to "Anyone" access. (' + err.message + ')');
+    throw new Error('Network error: ' + err.message);
   }
   let data = {};
-  try{ data = await res.json(); }catch(e){ /* non-JSON response */ }
+  try{ data = await res.json(); }catch(e){ /* non-JSON — treat as success */ }
   if(data && data.error) throw new Error(data.error);
   return data;
 }
@@ -385,7 +386,7 @@ hiddenFile.onchange = async () => {
       user: 'Kamal',
       timestamp: new Date().toLocaleString('en-GB')
     });
-    showToast(`Uploaded for ${branch} / ${gr.group} — saving…`);
+    showToast(`✓ Uploaded for ${branch} / ${gr.group}`);
     await new Promise(res => setTimeout(res, 2000));
     await loadAll();
   }catch(err){
