@@ -429,8 +429,9 @@
       statusText.textContent = 'Confirming upload...';
       progressBar.style.width = '90%';
       let fileUrl = null;
-      for (let attempt = 0; attempt < 10; attempt++) {
-        await new Promise(r => setTimeout(r, 1500));
+      for (let attempt = 0; attempt < 20; attempt++) {
+        await new Promise(r => setTimeout(r, 2000));
+        statusText.textContent = `Confirming upload... (${attempt+1}/20)`;
         try {
           const pollRes = await fetch(`${APPS_URL}?action=getUploadResult&uploadId=${uploadId}`);
           const pollData = await pollRes.json();
@@ -439,7 +440,15 @@
         } catch(pe) { /* keep polling */ }
       }
 
-      if (!fileUrl) throw new Error('Upload timed out — please refresh and check if it worked.');
+      if (!fileUrl) {
+        /* Timeout — but file may have uploaded to Drive. Reload to check. */
+        overlay.style.display = 'none';
+        showToast('⚠ Upload sent — refreshing to confirm...', false);
+        setTimeout(()=>loadData(), 2000);
+        return;
+      }
+
+      progressBar.style.width = '100%';
 
       progressBar.style.width = '100%';
 
