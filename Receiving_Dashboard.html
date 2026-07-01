@@ -64,6 +64,26 @@
     .error-banner { background:rgba(248,113,113,0.08); border:0.5px solid rgba(248,113,113,0.2); color:#f87171; font-size:12px; padding:10px 14px; border-radius:8px; margin-bottom:1rem; display:none; }
     .loading { text-align:center; padding:3rem; color:#64748b; font-size:13px; }
     @media (max-width:700px) { .kpi-grid { grid-template-columns:repeat(2,1fr); } .charts-row { grid-template-columns:1fr; } }
+    /* ── New sections ── */
+    .proc-table,.out-table { width:100%;border-collapse:collapse;font-size:11px; }
+    .proc-table th,.out-table th { padding:6px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;color:#64748b;border-bottom:0.5px solid rgba(255,255,255,0.08); }
+    .proc-table td,.out-table td { padding:6px 8px;border-bottom:0.5px solid rgba(255,255,255,0.05);vertical-align:middle; }
+    .proc-table tr:hover td,.out-table tr:hover td { background:rgba(255,255,255,0.02); }
+    .badge-esc { background:rgba(248,113,113,0.15);color:#f87171;font-size:9px;padding:1px 6px;border-radius:4px;font-weight:700; }
+    .badge-ok  { background:rgba(74,222,128,0.12);color:#4ade80;font-size:9px;padding:1px 6px;border-radius:4px; }
+    .timeline-entry { display:flex;gap:10px;padding:7px 0;border-bottom:0.5px solid rgba(255,255,255,0.04); }
+    .tl-dot { width:8px;height:8px;border-radius:50%;background:#22d3ee;margin-top:4px;flex-shrink:0; }
+    .tl-dot.warn{background:#fbbf24;} .tl-dot.err{background:#f87171;} .tl-dot.ok{background:#4ade80;}
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:300; }
+    .modal-box { background:#1a1f2e;border:0.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:1.5rem;width:540px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden; }
+    .modal-scroll { overflow-y:auto;flex:1;padding-right:4px; }
+    .modal-box h3 { font-size:15px;font-weight:700;color:#f1f5f9;margin-bottom:1rem; }
+    .sb { font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600; }
+    .sb-requested{background:rgba(100,116,139,0.2);color:#94a3b8;}
+    .sb-po{background:rgba(14,116,144,0.2);color:#22d3ee;}
+    .sb-transit{background:rgba(180,120,0,0.2);color:#fbbf24;}
+    .sb-delivered{background:rgba(22,163,74,0.2);color:#4ade80;}
+    .sb-escalated{background:rgba(248,113,113,0.18);color:#f87171;}
   </style>
 </head>
 <body>
@@ -325,7 +345,7 @@
       { label:'1D Freezer', req:'1D Freezer Req',  rec:'1D Freezer Rec'  },
       { label:'2D Freezer', req:'2D Freezer Req',  rec:'2D Freezer Rec'  },
     ];
-    const QTY_ITEMS = [...QTY_ITEMS_SHELVES, ...QTY_ITEMS_FRIDGES];
+    const QTY_ITEMS_DASH = [...QTY_ITEMS_SHELVES, ...QTY_ITEMS_FRIDGES];
 
     async function fetchSheet(name) {
       const res = await fetch(`${APPS_URL}?sheet=${encodeURIComponent(name)}`);
@@ -551,7 +571,7 @@
         return `<td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:11px;color:${c};">${rec}<span style="font-size:9px;color:#64748b;"> Rec</span><span style="color:#475569;"> / </span>${req}<span style="font-size:9px;color:#64748b;"> Req</span></span><br><span style="font-size:10px;color:${c};">${label}</span><div class="progress-bar-wrap" style="margin-top:3px;"><div class="progress-bar-fill" style="width:${Math.min(pct,100)}%;background:${c};"></div></div></td>`;
       };
       const sectionAssets = assetList.filter(a=>a['Section']===section);
-      const statusAssets  = sectionAssets.filter(a=>!QTY_ITEMS.some(q=>q.label.toLowerCase()===(a['Assets']||a['Asset']||'').toLowerCase()));
+      const statusAssets  = sectionAssets.filter(a=>!QTY_ITEMS_DASH.some(q=>q.label.toLowerCase()===(a['Assets']||a['Asset']||'').toLowerCase()));
       let html = `<table><thead><tr><th style="min-width:90px;text-align:left;border-right:2px solid rgba(255,255,255,0.5);">Item</th>${branches.map(b=>{const link=dnData[b]?`<a href="${dnData[b]}" target="_blank" class="branch-link">${b}</a>`:b;return`<th style="min-width:140px;">${link}</th>`;}).join('')}</tr></thead><tbody>`;
       const SKIP_STATUS_ASSETS = new Set(['Heavy Rack','Heavyrack']);
       const filteredStatusAssets = section==='Fridges'?[]:statusAssets.filter(a=>!SKIP_STATUS_ASSETS.has(a['Assets']||a['Asset']||''));
@@ -883,6 +903,55 @@
         qtyTbody.appendChild(tr);
       });
       card.appendChild(qtyWrap);
+
+      /* ── Procurement Requests (view-only) ── */
+      const procWrap=document.createElement('div');
+      procWrap.style.cssText='border-top:0.5px solid rgba(255,255,255,0.07);';
+      procWrap.innerHTML=`
+        <div onclick="toggleSection(this)" style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1.25rem;cursor:pointer;background:rgba(255,255,255,0.02);">
+          <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;">📦 Procurement Requests</span>
+          <span class="si" style="color:#64748b;font-size:11px;transition:transform 0.2s;transform:rotate(-90deg);">▼</span>
+        </div>
+        <div style="display:none;padding:0 1.25rem 0.75rem;">
+          <div id="proc_${cardId}"></div>
+        </div>`;
+      card.appendChild(procWrap);
+      setTimeout(()=>renderProcurement(branch.code, cardId), 0);
+
+      /* ── Outstanding Actions (view-only) ── */
+      const outWrap=document.createElement('div');
+      outWrap.style.cssText='border-top:0.5px solid rgba(255,255,255,0.07);';
+      outWrap.innerHTML=`
+        <div onclick="toggleSection(this)" style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1.25rem;cursor:pointer;background:rgba(255,255,255,0.02);">
+          <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;">⚡ Outstanding Actions</span>
+          <span class="si" style="color:#64748b;font-size:11px;transition:transform 0.2s;transform:rotate(-90deg);">▼</span>
+        </div>
+        <div style="display:none;padding:0 1.25rem 0.75rem;">
+          <div id="out_${cardId}"></div>
+        </div>`;
+      card.appendChild(outWrap);
+      setTimeout(()=>renderOutstanding(branch.code, cardId), 0);
+
+      /* ── Activity Timeline ── */
+      const actWrap=document.createElement('div');
+      actWrap.style.cssText='border-top:0.5px solid rgba(255,255,255,0.07);';
+      actWrap.innerHTML=`
+        <div onclick="toggleSection(this)" style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1.25rem;cursor:pointer;background:rgba(255,255,255,0.02);">
+          <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;">🕐 Activity Timeline</span>
+          <span class="si" style="color:#64748b;font-size:11px;transition:transform 0.2s;transform:rotate(-90deg);">▼</span>
+        </div>
+        <div style="display:none;padding:0 1.25rem 0.75rem;">
+          <div id="act_${cardId}"></div>
+        </div>`;
+      card.appendChild(actWrap);
+      setTimeout(()=>renderActivityTimeline(branch.code, cardId), 0);
+
+      /* ── Weekly Follow-up ── */
+      const wfuWrap=document.createElement('div');
+      wfuWrap.style.cssText='border-top:0.5px solid rgba(255,255,255,0.07);padding:0.6rem 1.25rem;display:flex;gap:8px;flex-wrap:wrap;';
+      wfuWrap.innerHTML=`<button onclick="openWeeklyFollowup('${branch.code}')" style="font-size:10px;padding:4px 12px;border-radius:6px;background:rgba(14,116,144,0.1);border:0.5px solid rgba(14,116,144,0.3);color:#22d3ee;cursor:pointer;font-family:'DM Sans',sans-serif;">📧 Weekly Follow-up</button>`;
+      card.appendChild(wfuWrap);
+
       return card;
     }
 
@@ -1143,10 +1212,296 @@
     function showSaveToast(msg){const t=document.getElementById('save-toast');t.textContent=msg||'✓ Saved';t.style.opacity='1';clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.opacity='0',2500);}
 
 
+    /* ════════════════════════════════════════════
+       SHARED HELPERS
+    ════════════════════════════════════════════ */
+    function toggleSection(hdr){
+      const body=hdr.nextElementSibling;
+      const icon=hdr.querySelector('.si');
+      const open=body.style.display==='none';
+      body.style.display=open?'block':'none';
+      if(icon) icon.style.transform=open?'rotate(0deg)':'rotate(-90deg)';
+    }
+    function closeModal(id){ document.getElementById(id).style.display='none'; }
+
+    /* ════════════════════════════════════════════
+       PROCUREMENT REQUESTS (view-only)
+    ════════════════════════════════════════════ */
+    let procCache={};
+
+    async function renderProcurement(branch, cardId){
+      const container=document.getElementById('proc_'+cardId);
+      if(!container) return;
+      if(!procCache[branch]){
+        try{
+          const r=await fetchSheet('Procurement Tracking');
+          const all={};
+          (r.rows||[]).forEach(row=>{
+            const b=(row['Branch Code']||'').trim();
+            if(!all[b]) all[b]=[];
+            all[b].push(row);
+          });
+          Object.keys(all).forEach(b=>{ procCache[b]=all[b]; });
+          if(!procCache[branch]) procCache[branch]=[];
+        } catch(e){ procCache[branch]=[]; }
+      }
+      const items=procCache[branch]||[];
+      if(!items.length){
+        container.innerHTML='<p style="font-size:11px;color:#475569;padding:6px 0;">No procurement requests recorded.</p>';
+        return;
+      }
+      const sbClass={'Requested':'sb-requested','PO Created':'sb-po','In Transit':'sb-transit','Delivered':'sb-delivered'};
+      container.innerHTML=`<table class="proc-table">
+        <thead><tr><th>Asset Group</th><th>Owner</th><th>Request No.</th><th>Status</th><th>ETA</th><th>Remarks</th></tr></thead>
+        <tbody>${items.map(it=>`<tr>
+          <td style="font-weight:600;color:#e2e8f0;">${it['Asset Group']||'—'}</td>
+          <td><span class="user-badge badge-${(it['Request Owner']||'').toLowerCase()}">${it['Request Owner']||'—'}</span></td>
+          <td style="font-family:'DM Mono',monospace;color:#22d3ee;">${it['Request Number']||'—'}</td>
+          <td><span class="sb ${sbClass[it['Status']]||'sb-requested'}">${it['Status']||'—'}</span></td>
+          <td style="color:#94a3b8;font-size:10px;">${it['ETA']||'—'}</td>
+          <td style="color:#64748b;font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it['Remarks']||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    /* ════════════════════════════════════════════
+       OUTSTANDING ACTIONS (view-only)
+    ════════════════════════════════════════════ */
+    let outCache={};
+
+    const FRIDGE_ASSETS_VO=new Set(['1 Door Chiller','2 Door Chiller','3 Door Chiller','1 Door Freezer','2 Door Freezer','3 Door Freezer','Freebolt','Heavy Rack','Heavyrack','Coldroom']);
+    const SOFT_ASSETS_VO  =new Set(['Bin Stickers','Cleaning Supplies','First Aid Kit','Stationery','File Drawer','Captains Chairs','Handshake Cabinet','Consumables']);
+
+    function defaultOwnerVO(asset){
+      if(FRIDGE_ASSETS_VO.has(asset)) return 'Procurement';
+      if(SOFT_ASSETS_VO.has(asset))   return 'Ops';
+      return 'Procurement';
+    }
+
+    function calcDaysOutstanding(dateStr){
+      if(!dateStr) return 0;
+      const parts=dateStr.split('/');
+      if(parts.length<3) return 0;
+      const d=new Date(parseInt(parts[2]),parseInt(parts[1])-1,parseInt(parts[0]));
+      return Math.max(0,Math.floor((Date.now()-d.getTime())/(1000*86400)));
+    }
+
+    async function renderOutstanding(branch, cardId){
+      const container=document.getElementById('out_'+cardId);
+      if(!container) return;
+      if(!outCache[branch]){
+        try{
+          const r=await fetchSheet('Outstanding Actions');
+          const all={};
+          (r.rows||[]).forEach(row=>{
+            const b=(row['Branch Code']||'').trim();
+            if(!all[b]) all[b]=[];
+            all[b].push(row);
+          });
+          Object.keys(all).forEach(b=>{outCache[b]=all[b];});
+          if(!outCache[branch]) outCache[branch]=[];
+        } catch(e){ outCache[branch]=[]; }
+      }
+      const branchStatus=trackerBranches.find(b=>b.code===branch)?.status||'';
+      const assets=trackerData.filter(r=>(r['Branch Code']||'').trim()===branch);
+      const fq=qtyData[branch]||{};
+      const saved=outCache[branch]||[];
+      const savedMap={};
+      saved.forEach(s=>{ savedMap[(s['Asset']||'').trim()]=s; });
+
+      const outstanding=[];
+      assets.forEach(r=>{
+        const asset=(r['Asset']||'').trim();
+        const priority=r['Priority']||'';
+        const status=r['Asset Status']||'None';
+        const isOut = status==='Not Received'||status==='Delivered';
+        const isHighPri=['Critical','Essential','High'].includes(priority);
+        if(!isOut&&!(isHighPri&&status==='Not Received')) return;
+        const sv=savedMap[asset]||{};
+        const firstDate=sv['First Outstanding Date']||'';
+        const days=calcDaysOutstanding(firstDate);
+        const esc=sv['Escalation Required']||((['Critical','Essential'].includes(priority)||days>7||branchStatus==='Live')?'Yes':'No');
+        outstanding.push({ asset, priority, status,
+          owner:sv['Responsible Owner']||defaultOwnerVO(asset),
+          nextAction:sv['Next Action']||(status==='Delivered'?'Waiting DN':'Waiting Delivery'),
+          eta:sv['ETA']||'', remarks:sv['Remarks']||'',
+          firstDate, days, esc });
+      });
+      QTY_ITEMS.forEach(item=>{
+        const req=parseInt(fq[item.req]||0)||0, rec=parseInt(fq[item.rec]||0)||0;
+        if(req>0&&rec<req){
+          const asset=item.label+' (Qty)';
+          const sv=savedMap[asset]||{};
+          const days=calcDaysOutstanding(sv['First Outstanding Date']||'');
+          outstanding.push({ asset, priority:'High', status:'Qty Shortage', reqQty:req, recQty:rec, remQty:req-rec,
+            owner:sv['Responsible Owner']||'Eissa',
+            nextAction:sv['Next Action']||'Waiting Delivery',
+            eta:sv['ETA']||'', remarks:sv['Remarks']||'',
+            firstDate:sv['First Outstanding Date']||'', days,
+            esc:sv['Escalation Required']||(days>7?'Yes':'No') });
+        }
+      });
+
+      if(!outstanding.length){
+        container.innerHTML='<p style="font-size:11px;color:#4ade80;padding:6px 0;">✓ No outstanding actions.</p>';
+        return;
+      }
+      container._outstanding=outstanding;
+      const priColor={Essential:'#f87171',Critical:'#f87171',High:'#fbbf24',Medium:'#22d3ee',Low:'#4ade80'};
+      container.innerHTML=`<table class="out-table">
+        <thead><tr><th>Asset</th><th>Priority</th><th>Status</th><th>Owner</th><th>Next Action</th><th>ETA</th><th>Days</th><th>Esc.</th></tr></thead>
+        <tbody>${outstanding.map(o=>`<tr>
+          <td style="font-weight:600;color:#e2e8f0;min-width:130px;">${o.asset}</td>
+          <td><span style="color:${priColor[o.priority]||'#94a3b8'};font-size:10px;font-weight:600;">${o.priority||'—'}</span></td>
+          <td style="font-size:10px;color:#94a3b8;">${o.status}</td>
+          <td><span class="user-badge badge-${(o.owner||'').toLowerCase().split(' ')[0]}">${o.owner||'—'}</span></td>
+          <td style="font-size:10px;color:#94a3b8;max-width:130px;">${o.nextAction||'—'}</td>
+          <td style="font-size:10px;color:#64748b;">${o.eta||'—'}</td>
+          <td style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:${o.days>7?'#f87171':'#94a3b8'};">${o.days}</td>
+          <td style="text-align:center;"><span class="${o.esc==='Yes'?'badge-esc':'badge-ok'}">${o.esc}</span></td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    /* ════════════════════════════════════════════
+       ACTIVITY TIMELINE
+    ════════════════════════════════════════════ */
+    let actCache={};
+    const ACT_DOT_CLASS={'Branch Status Changed':'warn','Asset Status Changed':'ok','DN Link Added':'ok','Note Updated':'','Procurement Added':'ok','Procurement Updated':'','Procurement Deleted':'err','Outstanding Updated':'warn','Weekly Follow-up':''};
+
+    async function renderActivityTimeline(branch, cardId){
+      const container=document.getElementById('act_'+cardId);
+      if(!container) return;
+      if(!actCache[branch]){
+        try{
+          const r=await fetchSheet('Activity Log');
+          const all={};
+          (r.rows||[]).forEach(row=>{const b=(row['Branch Code']||'').trim();if(!all[b])all[b]=[];all[b].push(row);});
+          Object.keys(all).forEach(b=>{actCache[b]=all[b];});
+          if(!actCache[branch]) actCache[branch]=[];
+        } catch(e){ actCache[branch]=[]; }
+      }
+      const entries=(actCache[branch]||[]).slice(-20).reverse();
+      if(!entries.length){
+        container.innerHTML='<p style="font-size:11px;color:#475569;padding:6px 0;">No activity recorded yet.</p>';
+        return;
+      }
+      container.innerHTML=entries.map(e=>{
+        const dotCls=ACT_DOT_CLASS[e['Action Type']]||'';
+        return `<div class="timeline-entry">
+          <div class="tl-dot ${dotCls}"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;">
+              <span style="font-size:11px;font-weight:600;color:#e2e8f0;">${e['Action Type']||''}</span>
+              <span class="user-badge badge-${(e['User']||'').toLowerCase()}">${e['User']||''}</span>
+              <span style="font-size:10px;color:#475569;margin-left:auto;">${e['Timestamp']||''}</span>
+            </div>
+            ${e['Field Changed']?`<div style="font-size:10px;color:#64748b;margin-top:2px;">${e['Field Changed']}${e['New Value']?' → <span style="color:#94a3b8;">'+e['New Value']+'</span>':''}</div>`:''}
+            ${e['Notes']?`<div style="font-size:10px;color:#475569;margin-top:1px;">${e['Notes']}</div>`:''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    /* ════════════════════════════════════════════
+       WEEKLY FOLLOW-UP
+    ════════════════════════════════════════════ */
+    function openWeeklyFollowup(branch){
+      document.getElementById('wfu-branch-label').textContent=branch;
+      document.getElementById('wfu-text').value=buildFollowupText(branch);
+      document.getElementById('wfu-modal').style.display='flex';
+    }
+    function copyFollowup(){
+      const ta=document.getElementById('wfu-text');
+      ta.select();
+      document.execCommand('copy');
+      showSaveToast('Copied to clipboard!');
+    }
+
+    function buildFollowupText(branch){
+      const branchStatus=trackerBranches.find(b=>b.code===branch)?.status||'—';
+      const assets=trackerData.filter(r=>(r['Branch Code']||'').trim()===branch);
+      const fq=qtyData[branch]||{};
+      const total=assets.filter(r=>r['Asset Status']&&r['Asset Status']!=='None').length||1;
+      const received=assets.filter(r=>r['Asset Status']==='Received').length;
+      const delivered=assets.filter(r=>r['Asset Status']==='Delivered').length;
+      const notRec=assets.filter(r=>r['Asset Status']==='Not Received').length;
+      const pct=Math.round(received/total*100);
+      const critAssets=assets.filter(r=>['Critical','Essential'].includes(r['Priority']));
+      const critPct=critAssets.length?Math.round(critAssets.filter(r=>r['Asset Status']==='Received').length/critAssets.length*100):0;
+      const DN_GROUPS=[
+        {name:'Freebolt & Heavy Rack', assets:['Freebolt','Heavy Rack','Heavyrack']},
+        {name:'Sign Board',            assets:['SignBoard','Sign Board']},
+        {name:'Curtains',              assets:['Curtain']},
+        {name:'Cold Room',             assets:['Coldroom','Cold Room']},
+        {name:'Fridges & Freezers',    assets:['1 Door Chiller','2 Door Chiller','3 Door Chiller','1 Door Freezer','2 Door Freezer','3 Door Freezer']},
+        {name:'Access Points & CCTV',  assets:['Access Points','CCTV']},
+        {name:'Air Condition',         assets:['Air Condition']},
+      ];
+      const dnGroupResults=DN_GROUPS.map(g=>{const ga=assets.filter(r=>g.assets.includes((r['Asset']||'').trim()));return{name:g.name,exists:ga.length>0,hasSigned:ga.some(r=>r['D.N. Signed']&&r['D.N. Signed'].startsWith('http')),hasUnsigned:ga.some(r=>r['D.N. Not Signed']&&r['D.N. Not Signed'].startsWith('http'))};}).filter(g=>g.exists);
+      const dnPct=dnGroupResults.length?Math.round(dnGroupResults.filter(g=>g.hasSigned).length/dnGroupResults.length*100):0;
+      const procs=procCache[branch]||[];
+      const procLines=procs.length?procs.map(p=>`  • ${p['Asset Group']}: Request No. ${p['Request Number']||'N/A'} — ${p['Status']||'—'} — ETA: ${p['ETA']||'N/A'}`).join('\n'):'  • No procurement requests recorded.';
+      const container=document.getElementById('out_tc_'+branch.replace(/[^a-zA-Z0-9]/g,'_'));
+      const outItems=container?._outstanding||[];
+      const outLines=outItems.filter(o=>o.nextAction!=='Completed').map(o=>`  • ${o.asset} — Owner: ${o.owner} — Next Action: ${o.nextAction}${o.eta?' — ETA: '+o.eta:''}`).join('\n')||'  • No outstanding actions.';
+      const missingDNGroups=dnGroupResults.filter(g=>!g.hasSigned);
+      const dnLines=missingDNGroups.length?missingDNGroups.map(g=>`  • ${g.name} — ${g.hasUnsigned?'D.N. uploaded — awaiting signature':'D.N. missing'}`).join('\n'):'  • All D.N. groups complete.';
+      const today=new Date().toLocaleDateString('en-GB');
+      return `Subject: Weekly Receiving Update — ${branch}
+
+Date: ${today}
+
+Dear Team,
+
+Please find below the weekly receiving update for ${branch}.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BRANCH STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Current Status:            ${branchStatus}
+  • Receiving Completion:      ${pct}%
+  • Critical Asset Completion: ${critPct}%
+  • D.N. Completion:           ${dnPct}%
+  • Assets: ${received} Received | ${delivered} Delivered | ${notRec} Not Received
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROCUREMENT REQUESTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${procLines}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTSTANDING ASSETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${outLines}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MISSING / PENDING D.N.S
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${dnLines}
+
+Best regards,
+Space Planning & Store Improvement`;
+    }
+
     /* ── Boot ── */
     loadAll();
     loadTracker();
     setInterval(()=>{loadAll();loadTracker();},5*60*1000);
   </script>
+  <!-- Weekly Follow-up Modal -->
+  <div id="wfu-modal" class="modal-overlay">
+    <div class="modal-box" style="width:620px;">
+      <h3>📧 Weekly Follow-up — <span id="wfu-branch-label"></span></h3>
+      <div class="modal-scroll">
+        <textarea id="wfu-text" style="width:100%;min-height:420px;background:#0f1117;border:0.5px solid rgba(255,255,255,0.1);color:#e2e8f0;font-size:11px;padding:10px;border-radius:6px;font-family:'DM Mono',monospace;line-height:1.7;resize:vertical;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;padding-top:0.75rem;border-top:0.5px solid rgba(255,255,255,0.07);">
+        <button class="btn" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:#94a3b8;" onclick="closeModal('wfu-modal')">Close</button>
+        <button class="btn" style="background:rgba(74,222,128,0.1);border-color:rgba(74,222,128,0.3);color:#4ade80;" onclick="copyFollowup()">📋 Copy</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
