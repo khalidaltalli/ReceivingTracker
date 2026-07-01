@@ -198,22 +198,30 @@ let editingId = null;
 const CLOSED = ['Done','Cancelled'];
 const ACTIVE  = ['Open','In Progress','Waiting'];
 
+function now() { return new Date().toISOString(); }
+
 /* ── Helpers ── */
 function fmt(d) {
   if (!d) return '';
-  try { return new Date(d).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); }
-  catch(e) { return d; }
+  try {
+    const dt = new Date(d);
+    if (isNaN(dt)) return d;
+    return dt.toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  } catch(e) { return d; }
 }
 function fmtDate(d) {
   if (!d) return '';
-  try { return new Date(d).toLocaleDateString([], { month:'short', day:'numeric', year:'numeric' }); }
-  catch(e) { return d; }
+  try {
+    const dt = new Date(d);
+    if (isNaN(dt)) return d;
+    return dt.toLocaleDateString([], { month:'short', day:'numeric', year:'numeric' });
+  } catch(e) { return d; }
 }
 function isOverdue(due, status) {
   if (!due || CLOSED.includes(status)) return false;
-  return new Date(due) < new Date();
+  const dt = new Date(due);
+  return !isNaN(dt) && dt < new Date();
 }
-function now() { return new Date().toLocaleString(); }
 
 /* ── Build a task row HTML ── */
 function taskRowHTML(t) {
@@ -384,7 +392,7 @@ async function refresh() { tasks = await WorkHub.getTab(TAB); render(); }
 
     /* Auto Completed Date */
     if (newStatus === 'Done' && oldStatus !== 'Done') {
-      fields['Completed Date'] = fmtDate(new Date().toISOString());
+      fields['Completed Date'] = new Date().toISOString();
     } else if (newStatus !== 'Done' && oldStatus === 'Done') {
       fields['Completed Date'] = '';
     }
