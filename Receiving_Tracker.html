@@ -127,6 +127,7 @@
         <button class="btn" style="background:rgba(248,113,113,0.08);border:0.5px solid rgba(248,113,113,0.2);color:#f87171;font-size:11px;" onclick="sessionStorage.removeItem('tracker_user');location.reload()">Sign Out</button>
         <button class="btn" style="background:rgba(167,139,250,0.08);border:0.5px solid rgba(167,139,250,0.2);color:#a78bfa;" onclick="openMonthlyReport()">📅 Monthly Report</button>
         <button class="btn" style="background:rgba(74,222,128,0.08);border:0.5px solid rgba(74,222,128,0.2);color:#4ade80;" onclick="openAddBranch()">+ Add Branch</button>
+        <span id="dn-missing-pill" style="font-size:11px;padding:4px 12px;border-radius:20px;background:rgba(248,113,113,0.12);border:0.5px solid rgba(248,113,113,0.3);color:#f87171;font-weight:600;display:none;">📋 — Missing D.N.s</span>
         <button class="btn" onclick="loadTracker()">↻ Refresh</button>
       </div>
     </div>
@@ -305,7 +306,7 @@
   <div style="position:fixed;bottom:1.5rem;right:1.5rem;background:#1a1f2e;border:0.5px solid rgba(74,222,128,0.3);color:#4ade80;font-size:12px;padding:8px 16px;border-radius:8px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:200;" id="save-toast">✓ Saved</div>
 
   <script>
-    const APPS_URL = 'https://script.google.com/macros/s/AKfycbwsYQoaCfmuqtrkJJfAKQhsjhkcY4o1fVBp9Crl_fudG-69pePmqNDtNo0suZvp4Pnyfw/exec';
+    const APPS_URL = 'https://script.google.com/macros/s/AKfycbyXMNhT-y0fQlFGG20lx_fD-47N39O5BvUl9QfMukrEyP0jnl8ckGCyS_ZUOphGfZ2Pww/exec';
 
     /* ── User Session ── */
     const PINS = { Khalid:'6969', Azhar:'0000', Eissa:'1234' };
@@ -401,12 +402,33 @@
         buildBranchCheckboxes();
         document.getElementById('tracker-updated').textContent='Last updated: '+new Date().toLocaleTimeString();
         renderTracker();
+        updateDNMissingPill();
       } catch(e){
         document.getElementById('tracker-updated').textContent='Failed: '+e.message;
       }
     }
 
-    /* ── Multi-select branch helpers ── */
+    function updateDNMissingPill(){
+      const DN_GROUPS_DASH=[
+        ['Freebolt','Heavy Rack','Heavyrack'],
+        ['SignBoard','Sign Board'],['Curtain'],['Coldroom','Cold Room'],
+        ['1 Door Chiller','2 Door Chiller','3 Door Chiller','1 Door Freezer','2 Door Freezer','3 Door Freezer'],
+        ['Access Points','CCTV'],['Air Condition']
+      ];
+      let missing=0;
+      trackerBranches.forEach(b=>{
+        const assets=trackerData.filter(r=>(r['Branch Code']||'').trim()===b.code);
+        DN_GROUPS_DASH.forEach(group=>{
+          const ga=assets.filter(r=>group.includes(r['Asset']||''));
+          if(ga.length>0&&!ga.some(r=>r['D.N. Not Signed']&&r['D.N. Not Signed'].startsWith('http'))) missing++;
+        });
+      });
+      const pill=document.getElementById('dn-missing-pill');
+      if(!pill) return;
+      if(missing===0){ pill.style.display='none'; return; }
+      pill.style.display='inline-block';
+      pill.textContent=`📋 ${missing} Missing D.N.s`;
+    }
     let selectedBranches = new Set(); /* empty = all selected */
 
     function buildBranchCheckboxes() {
