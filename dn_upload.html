@@ -54,13 +54,6 @@
     .progress-mini { height: 3px; border-radius: 2px; background: rgba(255,255,255,0.06); margin-top: 3px; overflow: hidden; }
     .progress-fill { height: 100%; border-radius: 2px; background: #22d3ee; transition: width 0.3s; }
 
-    /* ── Upload progress overlay ── */
-    .upload-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 200; }
-    .upload-box { background: #1a1f2e; border: 0.5px solid rgba(167,139,250,0.3); border-radius: 12px; padding: 1.5rem 2rem; text-align: center; min-width: 260px; }
-    .upload-box p { font-size: 13px; color: #e2e8f0; margin-bottom: 0.75rem; }
-    .upload-box .spinner { width: 28px; height: 28px; border: 3px solid rgba(167,139,250,0.2); border-top-color: #a78bfa; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 0.75rem; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
     /* ── Toast ── */
     #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1a1f2e; border: 0.5px solid rgba(74,222,128,0.3); color: #4ade80; font-size: 12px; padding: 8px 16px; border-radius: 8px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 300; }
 
@@ -165,20 +158,6 @@
 
 </div>
 
-<!-- Upload overlay -->
-<div class="upload-overlay" id="upload-overlay">
-  <div class="upload-box">
-    <div class="spinner"></div>
-    <p id="upload-status-text">Uploading file...</p>
-    <div class="progress-mini" style="width:200px;margin:0 auto;">
-      <div class="progress-fill" id="upload-progress" style="width:0%"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Hidden file input -->
-<input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelected()" />
-
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -202,7 +181,6 @@
   let allBranches = [];
   let checklistData = [];
   let currentFilter = 'all';
-  let pendingUpload = null; /* { branch, groupKey } */
   let activityLog = [];
 
   /* ══ LOGIN ══ */
@@ -313,10 +291,10 @@
         } else if (g.status === 'unsigned') {
           html += `<span class="dn-status dn-unsigned">📎 Uploaded</span>`;
           if (g.link) html += `<a href="${g.link}" target="_blank" class="view-link">View</a>`;
-          if (!isViewer) html += `<button class="upload-btn" onclick="triggerUpload('${branch.code}','${DN_GROUPS[i].key}',this)">↑ Replace</button>`;
+          if (!isViewer) html += `<button class="upload-btn" onclick="triggerUpload('${branch.code}','${DN_GROUPS[i].key}')">＋ Link</button>`;
         } else {
           html += `<span class="dn-status dn-missing">Missing</span>`;
-          if (!isViewer) html += `<button class="upload-btn" onclick="triggerUpload('${branch.code}','${DN_GROUPS[i].key}',this)">↑ Upload</button>`;
+          if (!isViewer) html += `<button class="upload-btn" onclick="triggerUpload('${branch.code}','${DN_GROUPS[i].key}')">＋ Add Link</button>`;
         }
         html += `</div></td>`;
       });
@@ -364,113 +342,47 @@
   }
 
   /* ══ FILE UPLOAD ══ */
-  function triggerUpload(branch, groupKey, btn) {
-    pendingUpload = { branch, groupKey };
-    document.getElementById('file-input').click();
+  function triggerUpload(branch, groupKey) {
+    const group = DN_GROUPS.find(g=>g.key===groupKey);
+    const link  = prompt(`Paste the Google Drive link for:\n${branch} — ${group.name}`);
+    if (!link || !link.trim()) return;
+    if (!link.startsWith('http')) { showToast('✗ Invalid link — must start with http', true); return; }
+    saveDNLink(branch, group, link.trim());
   }
 
-  function handleFileSelected() {
-    const file = document.getElementById('file-input').files[0];
-    if (!file || !pendingUpload) return;
-    uploadFile(file, pendingUpload.branch, pendingUpload.groupKey);
-    document.getElementById('file-input').value = '';
-  }
-
-  async function uploadFile(file, branch, groupKey) {
-    const overlay = document.getElementById('upload-overlay');
-    const statusText = document.getElementById('upload-status-text');
-    const progressBar = document.getElementById('upload-progress');
-    overlay.style.display = 'flex';
-    statusText.textContent = 'Reading file...';
-    progressBar.style.width = '20%';
-
-    try {
-      /* Read file as base64 */
-      const base64 = await new Promise((res, rej) => {
-        const reader = new FileReader();
-        reader.onload = () => res(reader.result.split(',')[1]);
-        reader.onerror = rej;
-        reader.readAsDataURL(file);
-      });
-
-      statusText.textContent = 'Uploading to Drive...';
-      progressBar.style.width = '50%';
-
-      const group = DN_GROUPS.find(g=>g.key===groupKey);
-      const fileName = `${branch}_${group.name.replace(/[^a-zA-Z0-9]/g,'_')}_${new Date().toLocaleDateString('en-GB').replace(/\//g,'-')}.${file.name.split('.').pop()}`;
-
-      statusText.textContent = 'Saving to Drive...';
-      progressBar.style.width = '50%';
-
-      /* Step 1 — fire upload no-cors */
-      fetch(APPS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action:    'uploadDNFile',
-          branch,
-          groupName: group.name,
-          assets:    group.assets,
-          fileName,
-          mimeType:  file.type,
-          base64,
-          user:      currentUser,
-          timestamp: new Date().toLocaleString('en-GB')
-        })
-      });
-
-      /* Step 2 — wait 5s for Drive to process */
-      for (let i = 1; i <= 5; i++) {
-        await new Promise(r => setTimeout(r, 1000));
-        progressBar.style.width = (50 + i * 8) + '%';
-        statusText.textContent = `Processing... ${i}/5`;
+  async function saveDNLink(branch, group, fileUrl) {
+    const timestamp = new Date().toLocaleString('en-GB');
+    /* Write to sheet */
+    await fetch(APPS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action:    'writeDNLink',
+        branch,
+        assets:    group.assets,
+        groupName: group.name,
+        fileName:  'Manual link entry',
+        fileUrl,
+        user:      currentUser,
+        timestamp
+      })
+    });
+    /* Update local data immediately */
+    checklistData.forEach(r => {
+      if ((r['Branch Code']||'').trim()===branch && group.assets.includes((r['Asset']||'').trim())) {
+        r['D.N. Not Signed'] = fileUrl;
       }
-
-      /* Step 3 — check DN Upload Log to get the file URL back */
-      statusText.textContent = 'Retrieving link...';
-      let fileUrl = null;
-      for (let attempt = 0; attempt < 8; attempt++) {
-        await new Promise(r => setTimeout(r, 1500));
-        try {
-          const logRes  = await fetch(`${APPS_URL}?sheet=DN%20Upload%20Log`);
-          const logData = await logRes.json();
-          const rows    = (logData.rows || []).reverse();
-          const match   = rows.find(r => r['Branch Code'] === branch && r['D.N. Group'] === group.name);
-          if (match && match['File URL']) { fileUrl = match['File URL']; break; }
-        } catch(pe) { /* keep trying */ }
-      }
-
-      progressBar.style.width = '100%';
-
-      progressBar.style.width = '100%';
-
-      /* Update local checklist data with new link */
-      checklistData.forEach(r => {
-        if ((r['Branch Code']||'').trim()===branch && group.assets.includes((r['Asset']||'').trim())) {
-          r['D.N. Not Signed'] = fileUrl;
-        }
-      });
-
-      /* Add to local activity log */
-      activityLog.unshift({
-        Timestamp: new Date().toLocaleString('en-GB'),
-        User: currentUser,
-        'Branch Code': branch,
-        'D.N. Group': group.name,
-        'File Name': fileName,
-        'File URL': data.fileUrl
-      });
-
-      overlay.style.display = 'none';
-      showToast('✓ D.N. uploaded and link saved!');
-      applyFilter();
-      updateMissingPill();
-      renderLog();
-    } catch(e) {
-      overlay.style.display = 'none';
-      showToast('✗ Upload failed: ' + e.message, true);
-    }
+    });
+    activityLog.unshift({
+      Timestamp: timestamp, User: currentUser,
+      'Branch Code': branch, 'D.N. Group': group.name,
+      'File Name': 'Manual link', 'File URL': fileUrl
+    });
+    showToast('✓ Link saved!');
+    applyFilter();
+    updateMissingPill();
+    renderLog();
   }
 
   /* ══ ACTIVITY LOG ══ */
