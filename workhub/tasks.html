@@ -9,11 +9,11 @@
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:'DM Sans',sans-serif; background:#0f1117; color:#e2e8f0; min-height:100vh; padding:1.5rem; }
 
-  /* ── Header ── */
+  /* Header */
   .header { position:relative; display:flex; flex-direction:column; align-items:center; text-align:center; gap:14px; margin-bottom:2rem; padding:0.5rem 0 1.5rem; border-bottom:0.5px solid rgba(255,255,255,0.08); }
   .header-left img { height:90px; object-fit:contain; }
   .header-center h1 { font-size:24px; font-weight:700; color:#fff; letter-spacing:-0.3px; }
-  .header-center p  { font-size:12px; color:#64748b; margin-top:5px; }
+  .header-center p { font-size:12px; color:#64748b; margin-top:5px; }
   .header-right { position:absolute; top:0.5rem; right:0; display:flex; align-items:center; gap:10px; }
   .live-badge { display:flex; align-items:center; gap:6px; font-size:11px; color:#a78bfa; background:rgba(167,139,250,0.08); border:0.5px solid rgba(167,139,250,0.25); padding:5px 12px; border-radius:20px; }
   .live-dot { width:6px; height:6px; border-radius:50%; background:#a78bfa; animation:pulse 2s infinite; }
@@ -22,29 +22,80 @@
   .back-link:hover { color:#94a3b8; }
   @media(max-width:480px){ .header-right{position:static;margin-top:8px;justify-content:center;} .header-left img{height:60px;} }
 
-  /* ── Layout ── */
-  main { max-width:700px; margin:0 auto; }
-  .panel { background:#1a1f2e; border:0.5px solid rgba(255,255,255,0.07); border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1.25rem; }
-  .panel h3 { color:#f1f5f9; font-size:14px; font-weight:700; margin-bottom:0.75rem; text-transform:uppercase; letter-spacing:0.4px; }
+  /* Layout */
+  main { max-width:780px; margin:0 auto; }
+  .top-bar { display:flex; align-items:center; gap:10px; margin-bottom:1.25rem; }
+  .top-bar input { flex:1; padding:11px 14px; background:#1a1f2e; border:0.5px solid rgba(255,255,255,0.1); border-radius:8px; color:#e2e8f0; font-family:inherit; font-size:14px; }
+  .top-bar input:focus { outline:none; border-color:rgba(34,211,238,0.4); }
+  .top-bar input::placeholder { color:#475569; }
+  .btn-add { background:#22d3ee; color:#0f1117; border:none; padding:11px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; font-family:inherit; }
+  .btn-add:hover { background:#5ee3f5; }
 
-  /* ── Input ── */
-  input#newTask { width:100%; padding:12px 14px; background:#0f1117; border:0.5px solid rgba(255,255,255,0.12); border-radius:8px; color:#e2e8f0; font-family:inherit; font-size:15px; }
-  input#newTask:focus { outline:none; border-color:rgba(34,211,238,0.4); }
-  input#newTask::placeholder { color:#64748b; }
+  /* Filter tabs */
+  .filter-tabs { display:flex; gap:8px; margin-bottom:1.25rem; }
+  .filter-tabs button { background:#1a1f2e; color:#94a3b8; border:0.5px solid rgba(255,255,255,0.08); padding:7px 16px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .filter-tabs button.active { background:rgba(34,211,238,0.12); color:#22d3ee; border-color:rgba(34,211,238,0.3); }
 
-  /* ── Task rows ── */
-  .task-row { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+  /* Task list */
+  .panel { background:#1a1f2e; border:0.5px solid rgba(255,255,255,0.07); border-radius:12px; margin-bottom:1.25rem; overflow:hidden; }
+  .panel-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; padding:12px 16px; border-bottom:0.5px solid rgba(255,255,255,0.06); }
+
+  .task-row { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:0.5px solid rgba(255,255,255,0.05); cursor:pointer; transition:background .15s; }
   .task-row:last-child { border-bottom:none; }
+  .task-row:hover { background:rgba(255,255,255,0.03); }
   .task-row input[type=checkbox] { accent-color:#22d3ee; width:16px; height:16px; cursor:pointer; flex-shrink:0; }
-  .task-title { flex:1; font-size:14px; color:#e2e8f0; }
+  .task-info { flex:1; min-width:0; }
+  .task-title { font-size:14px; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .task-title.done { color:#475569; text-decoration:line-through; }
-  .task-updated { font-size:11px; color:#475569; white-space:nowrap; }
-  .empty { font-size:13px; color:#475569; padding:8px 0; }
+  .task-meta { display:flex; gap:10px; margin-top:3px; flex-wrap:wrap; }
+  .task-meta span { font-size:11px; color:#475569; }
+  .task-meta .due { color:#fbbf24; }
+  .task-meta .due.overdue { color:#f87171; }
+  .priority-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .p-High   { background:#f87171; }
+  .p-Medium { background:#fbbf24; }
+  .p-Low    { background:#4ade80; }
+  .task-status-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; white-space:nowrap; }
+  .s-Open       { background:rgba(34,211,238,0.1);  color:#22d3ee; }
+  .s-InProgress { background:rgba(251,191,36,0.12); color:#fbbf24; }
+  .s-Waiting    { background:rgba(167,139,250,0.12);color:#a78bfa; }
+  .s-Blocked    { background:rgba(248,113,113,0.12);color:#f87171; }
+  .s-Done       { background:rgba(74,222,128,0.1);  color:#4ade80; }
+  .s-Cancelled  { background:rgba(100,116,139,0.12);color:#64748b; }
+  .edit-btn { font-size:11px; color:#475569; background:none; border:none; cursor:pointer; padding:4px 8px; border-radius:6px; font-family:inherit; }
+  .edit-btn:hover { background:rgba(255,255,255,0.06); color:#94a3b8; }
+  .empty { font-size:13px; color:#475569; padding:20px 16px; }
+  .note-row { padding:0 16px 12px 44px; border-bottom:0.5px solid rgba(255,255,255,0.05); }
+  .note-row textarea { width:100%; background:#0f1117; border:0.5px solid rgba(255,255,255,0.1); border-radius:6px; color:#94a3b8; font-family:inherit; font-size:12px; padding:7px 9px; resize:vertical; min-height:56px; }
+  .note-row textarea:focus { outline:none; border-color:rgba(34,211,238,0.35); color:#e2e8f0; }
+  .note-save-btn { margin-top:5px; background:rgba(34,211,238,0.1); color:#22d3ee; border:0.5px solid rgba(34,211,238,0.25); padding:4px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .note-save-btn:hover { background:rgba(34,211,238,0.2); }
+  .note-toggle { font-size:11px; color:#475569; background:none; border:none; cursor:pointer; padding:2px 6px; border-radius:4px; font-family:inherit; }
+  .note-toggle:hover { color:#94a3b8; }
 
-  /* ── Period buttons ── */
-  .period-btns { display:flex; gap:8px; margin-bottom:14px; }
-  .period-btns button { background:#262c3d; color:#94a3b8; border:none; padding:7px 16px; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
-  .period-btns button.active { background:rgba(34,211,238,0.12); color:#22d3ee; }
+  /* Report */
+  .period-btns { display:flex; gap:8px; padding:12px 16px; border-bottom:0.5px solid rgba(255,255,255,0.06); }
+  .period-btns button { background:#0f1117; color:#94a3b8; border:0.5px solid rgba(255,255,255,0.08); padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .period-btns button.active { background:rgba(34,211,238,0.1); color:#22d3ee; border-color:rgba(34,211,238,0.3); }
+
+  /* ── MODAL ── */
+  .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; padding:1rem; }
+  .overlay.open { display:flex; }
+  .modal { background:#1a1f2e; border:0.5px solid rgba(255,255,255,0.1); border-radius:14px; width:100%; max-width:480px; padding:1.5rem; position:relative; }
+  .modal h2 { font-size:16px; color:#f1f5f9; margin-bottom:1.25rem; }
+  .modal label { display:block; font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.4px; font-weight:600; margin:14px 0 5px; }
+  .modal input, .modal select, .modal textarea {
+    width:100%; padding:9px 11px; background:#0f1117; border:0.5px solid rgba(255,255,255,0.12);
+    border-radius:8px; color:#e2e8f0; font-family:inherit; font-size:14px;
+  }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { outline:none; border-color:rgba(34,211,238,0.4); }
+  .modal textarea { resize:vertical; min-height:80px; }
+  .modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .modal-footer { display:flex; gap:10px; margin-top:1.25rem; justify-content:flex-end; }
+  .btn-save { background:#22d3ee; color:#0f1117; border:none; padding:9px 20px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .btn-save:hover { background:#5ee3f5; }
+  .btn-cancel { background:#262c3d; color:#94a3b8; border:none; padding:9px 16px; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; }
+  .btn-delete { background:rgba(248,113,113,0.12); color:#f87171; border:none; padding:9px 16px; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; margin-right:auto; }
 </style>
 </head>
 <body>
@@ -66,22 +117,32 @@
 </div>
 
 <main>
-  <div class="panel">
-    <input id="newTask" placeholder="Type a task and press Enter…">
+  <div class="top-bar">
+    <input id="newTask" placeholder="Quick add — type a task title and press Enter…">
+    <button class="btn-add" id="openNewModal">+ New Task</button>
+  </div>
+
+  <div class="filter-tabs">
+    <button class="active" data-filter="all">All</button>
+    <button data-filter="Open">Open</button>
+    <button data-filter="In Progress">In Progress</button>
+    <button data-filter="Waiting">Waiting</button>
+    <button data-filter="Done">Done</button>
+    <button data-filter="Cancelled">Cancelled</button>
   </div>
 
   <div class="panel">
-    <h3>Open</h3>
-    <div id="openTasks"><p class="empty">Loading…</p></div>
+    <div class="panel-title">Active Tasks</div>
+    <div id="taskList"><p class="empty">Loading…</p></div>
   </div>
 
   <div class="panel">
-    <h3>Done</h3>
-    <div id="doneTasks"><p class="empty">—</p></div>
+    <div class="panel-title">Done &amp; Cancelled</div>
+    <div id="closedList"><p class="empty">—</p></div>
   </div>
 
   <div class="panel">
-    <h3>Report</h3>
+    <div class="panel-title">Report</div>
     <div class="period-btns">
       <button data-period="day" class="active">Today</button>
       <button data-period="week">This Week</button>
@@ -91,90 +152,251 @@
   </div>
 </main>
 
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">New Task</h2>
+    <label>Title</label>
+    <input id="mTitle" placeholder="Task title">
+    <div class="modal-grid">
+      <div>
+        <label>Status</label>
+        <select id="mStatus">
+          <option>Open</option>
+          <option>In Progress</option>
+          <option>Waiting</option>
+          <option>Done</option>
+          <option>Cancelled</option>
+        </select>
+      </div>
+      <div>
+        <label>Due Date</label>
+        <input id="mDue" type="date">
+      </div>
+    </div>
+    <label>Notes</label>
+    <textarea id="mNotes" placeholder="Any details, context, next steps…"></textarea>
+    <div id="mDatesInfo" style="display:none; margin-top:12px; font-size:11px; color:#475569; display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+      <span id="mCreated"></span>
+      <span id="mUpdated"></span>
+      <span id="mCompleted"></span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" id="cancelBtn">Cancel</button>
+      <button class="btn-save" id="saveBtn">Save Task</button>
+    </div>
+  </div>
+</div>
+
 <script src="api.js"></script>
 <script>
+const TAB = 'My Tasks';
 let tasks = [];
+let currentFilter = 'all';
 let currentPeriod = 'day';
+let editingId = null;
+const CLOSED = ['Done','Cancelled'];
+const ACTIVE  = ['Open','In Progress','Waiting'];
 
+/* ── Helpers ── */
 function fmt(d) {
   if (!d) return '';
   try { return new Date(d).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); }
   catch(e) { return d; }
 }
+function fmtDate(d) {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString([], { month:'short', day:'numeric', year:'numeric' }); }
+  catch(e) { return d; }
+}
+function isOverdue(due, status) {
+  if (!due || CLOSED.includes(status)) return false;
+  return new Date(due) < new Date();
+}
+function now() { return new Date().toLocaleString(); }
 
-function renderRow(t) {
-  const done = t.Status === 'Done';
-  return `<div class="task-row">
-    <input type="checkbox" ${done?'checked':''} data-id="${t.ID}" class="toggleDone">
-    <div class="task-title ${done?'done':''}">${t.Title||''}</div>
-    <div class="task-updated">${fmt(t.Updated||t.Created)}</div>
-  </div>`;
+/* ── Build a task row HTML ── */
+function taskRowHTML(t) {
+  const closed = CLOSED.includes(t.Status);
+  const over   = isOverdue(t['Due Date'], t.Status);
+  const sk     = (t.Status||'Open').replace(/\s+/g,'');
+  const noteSnippet = t.Note ? `📝 ${t.Note.substring(0,50)}${t.Note.length>50?'…':''}` : '+ add note';
+  return `
+    <div class="task-row" data-id="${t.ID}">
+      <div class="task-info">
+        <div class="task-title ${closed?'done':''}">${t.Title||''}</div>
+        <div class="task-meta">
+          ${t['Due Date'] ? `<span class="due ${over?'overdue':''}">📅 ${fmtDate(t['Due Date'])}${over?' · overdue':''}</span>` : ''}
+          <span>updated ${fmt(t.Updated||t.Created)}</span>
+          ${t['Completed Date'] ? `<span style="color:#4ade80">✓ ${fmtDate(t['Completed Date'])}</span>` : ''}
+        </div>
+      </div>
+      <span class="task-status-badge s-${sk}">${t.Status||'Open'}</span>
+      <button class="note-toggle" data-id="${t.ID}">📝</button>
+      <button class="edit-btn" data-id="${t.ID}">✏️</button>
+    </div>
+    <div class="note-row" id="note-${t.ID}" style="display:none;">
+      <textarea class="note-ta" data-id="${t.ID}" placeholder="Write a note…">${t.Note||''}</textarea>
+      <button class="note-save-btn" data-id="${t.ID}">Save Note</button>
+    </div>`;
 }
 
-function inPeriod(dateStr, period) {
-  if (!dateStr) return false;
-  const d = new Date(dateStr); if (isNaN(d)) return false;
-  const now = new Date();
-  if (period === 'day') return d.toDateString() === now.toDateString();
-  if (period === 'week') { const w = new Date(now); w.setDate(now.getDate()-7); return d >= w && d <= now; }
-  if (period === 'month') return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
-  return false;
-}
-
+/* ── Render ── */
 function render() {
-  const open = tasks.filter(t => t.Status !== 'Done').sort((a,b) => new Date(b.Updated||b.Created) - new Date(a.Updated||a.Created));
-  const done = tasks.filter(t => t.Status === 'Done').sort((a,b) => new Date(b.Updated||b.Created) - new Date(a.Updated||a.Created));
+  const sortOrder = { 'Open':0,'In Progress':1,'Waiting':2,'Done':3,'Cancelled':4 };
 
-  document.getElementById('openTasks').innerHTML = open.length ? open.map(renderRow).join('') : '<p class="empty">No open tasks.</p>';
-  document.getElementById('doneTasks').innerHTML = done.length ? done.map(renderRow).join('') : '<p class="empty">Nothing done yet.</p>';
+  let active = tasks.filter(t => ACTIVE.includes(t.Status));
+  let closed = tasks.filter(t => CLOSED.includes(t.Status));
 
-  document.querySelectorAll('.toggleDone').forEach(cb => {
-    cb.addEventListener('change', async () => {
-      await WorkHub.saveRow('My Tasks', { 'Status': cb.checked ? 'Done' : 'Open' }, cb.dataset.id);
-      await refresh();
-    });
-  });
+  if (currentFilter !== 'all') {
+    active = tasks.filter(t => t.Status === currentFilter && ACTIVE.includes(t.Status));
+    closed = tasks.filter(t => t.Status === currentFilter && CLOSED.includes(t.Status));
+    if (CLOSED.includes(currentFilter)) { active = []; closed = tasks.filter(t => t.Status === currentFilter); }
+    if (ACTIVE.includes(currentFilter)) { closed = []; active = tasks.filter(t => t.Status === currentFilter); }
+  }
+
+  active.sort((a,b) => (sortOrder[a.Status]??0)-(sortOrder[b.Status]??0));
+  closed.sort((a,b) => new Date(b.Updated||b.Created) - new Date(a.Updated||a.Created));
+
+  document.getElementById('taskList').innerHTML  = active.length  ? active.map(taskRowHTML).join('') : '<p class="empty">No active tasks.</p>';
+  document.getElementById('closedList').innerHTML = closed.length ? closed.map(taskRowHTML).join('') : '<p class="empty">Nothing here yet.</p>';
+
+  /* events */
+  document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', () => openModal(btn.dataset.id)));
+  document.querySelectorAll('.note-toggle').forEach(btn => btn.addEventListener('click', () => {
+    const row = document.getElementById('note-' + btn.dataset.id);
+    row.style.display = row.style.display === 'none' ? 'block' : 'none';
+    if (row.style.display === 'block') row.querySelector('textarea').focus();
+  }));
+  document.querySelectorAll('.note-save-btn').forEach(btn => btn.addEventListener('click', async () => {
+    const ta = btn.parentElement.querySelector('textarea');
+    btn.textContent = 'Saving…';
+    await WorkHub.saveRow(TAB, { 'Note': ta.value, 'Updated': now() }, btn.dataset.id);
+    btn.textContent = 'Saved ✓';
+    await refresh();
+  }));
 
   renderReport(currentPeriod);
 }
 
+/* ── Report ── */
+function inPeriod(d, period) {
+  if (!d) return false;
+  const dt = new Date(d); if (isNaN(dt)) return false;
+  const n = new Date();
+  if (period==='day')   return dt.toDateString()===n.toDateString();
+  if (period==='week')  { const w=new Date(n); w.setDate(n.getDate()-7); return dt>=w&&dt<=n; }
+  if (period==='month') return dt.getMonth()===n.getMonth()&&dt.getFullYear()===n.getFullYear();
+}
 function renderReport(period) {
   currentPeriod = period;
+  const sk = s => (s||'Open').replace(/\s+/g,'');
   const touched = tasks
     .filter(t => inPeriod(t.Updated||t.Created, period))
-    .sort((a,b) => new Date(b.Updated||b.Created) - new Date(a.Updated||a.Created));
+    .sort((a,b) => new Date(b.Updated||b.Created)-new Date(a.Updated||a.Created));
   document.getElementById('reportList').innerHTML = touched.length
-    ? touched.map(t => `<div class="task-row">
-        <div class="task-title">${t.Title||''}</div>
-        <div class="task-updated" style="color:${t.Status==='Done'?'#4ade80':'#94a3b8'}">${t.Status||'Open'} · ${fmt(t.Updated||t.Created)}</div>
-      </div>`).join('')
+    ? touched.map(t => `
+        <div class="task-row" style="cursor:default; flex-wrap:wrap; gap:6px;">
+          <div class="task-info">
+            <div class="task-title">${t.Title||''}</div>
+            <div class="task-meta">
+              ${t.Note ? `<span>📝 ${t.Note.substring(0,60)}${t.Note.length>60?'…':''}</span>` : ''}
+              <span>updated ${fmt(t.Updated||t.Created)}</span>
+            </div>
+          </div>
+          <span class="task-status-badge s-${sk(t.Status)}">${t.Status||'Open'}</span>
+        </div>`).join('')
     : '<p class="empty">No tasks edited in this period.</p>';
 }
 
-async function refresh() {
-  tasks = await WorkHub.getTab('My Tasks');
-  render();
+/* ── Modal ── */
+function openModal(id) {
+  editingId = id || null;
+  const t = id ? tasks.find(x => x.ID === id) : null;
+  document.getElementById('modalTitle').textContent = t ? 'Edit Task' : 'New Task';
+  document.getElementById('mTitle').value  = t ? (t.Title||'') : '';
+  document.getElementById('mStatus').value = t ? (t.Status||'Open') : 'Open';
+  document.getElementById('mDue').value    = t ? (t['Due Date']||'') : '';
+  document.getElementById('mNotes').value  = t ? (t.Note||'') : '';
+  const info = document.getElementById('mDatesInfo');
+  if (t) {
+    info.style.display = 'grid';
+    document.getElementById('mCreated').textContent   = t.Created   ? '📅 Created: '   + fmt(t.Created)   : '';
+    document.getElementById('mUpdated').textContent   = t.Updated   ? '✏️ Updated: '   + fmt(t.Updated)   : '';
+    document.getElementById('mCompleted').textContent = t['Completed Date'] ? '✓ Completed: ' + fmtDate(t['Completed Date']) : '';
+  } else { info.style.display = 'none'; }
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('mTitle').focus();
 }
+function closeModal() { document.getElementById('overlay').classList.remove('open'); editingId = null; }
 
+/* ── Refresh ── */
+async function refresh() { tasks = await WorkHub.getTab(TAB); render(); }
+
+/* ── Boot ── */
 (async function() {
   await WorkHub.requireAccess();
   await refresh();
 
+  /* Quick add */
   document.getElementById('newTask').addEventListener('keydown', async (e) => {
     if (e.key !== 'Enter') return;
-    const title = e.target.value.trim();
-    if (!title) return;
-    await WorkHub.saveRow('My Tasks', { 'Title': title, 'Status': 'Open' });
+    const title = e.target.value.trim(); if (!title) return;
+    await WorkHub.saveRow(TAB, { 'Title': title, 'Status': 'Open', 'Created': now() });
     e.target.value = '';
     await refresh();
   });
 
+  document.getElementById('openNewModal').addEventListener('click', () => openModal(null));
+
+  /* Filter tabs */
+  document.querySelectorAll('.filter-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active'); currentFilter = btn.dataset.filter; render();
+    });
+  });
+
+  /* Period buttons */
   document.querySelectorAll('.period-btns button').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.period-btns button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderReport(btn.dataset.period);
+      btn.classList.add('active'); renderReport(btn.dataset.period);
     });
+  });
+
+  /* Modal Save */
+  document.getElementById('saveBtn').addEventListener('click', async () => {
+    const title = document.getElementById('mTitle').value.trim();
+    if (!title) { document.getElementById('mTitle').focus(); return; }
+    const newStatus = document.getElementById('mStatus').value;
+    const oldTask   = editingId ? tasks.find(x => x.ID === editingId) : null;
+    const oldStatus = oldTask ? oldTask.Status : '';
+
+    const fields = {
+      'Title':    title,
+      'Status':   newStatus,
+      'Due Date': document.getElementById('mDue').value,
+      'Note':     document.getElementById('mNotes').value,
+      'Updated':  now()
+    };
+    if (!editingId) fields['Created'] = now();
+
+    /* Auto Completed Date */
+    if (newStatus === 'Done' && oldStatus !== 'Done') {
+      fields['Completed Date'] = fmtDate(new Date().toISOString());
+    } else if (newStatus !== 'Done' && oldStatus === 'Done') {
+      fields['Completed Date'] = '';
+    }
+
+    await WorkHub.saveRow(TAB, fields, editingId || '');
+    closeModal();
+    await refresh();
+  });
+
+  document.getElementById('cancelBtn').addEventListener('click', closeModal);
+  document.getElementById('overlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('overlay')) closeModal();
   });
 })();
 </script>
