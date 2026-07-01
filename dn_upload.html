@@ -373,6 +373,7 @@ hiddenFile.onchange = async () => {
   const asset = (checklistRow['Asset']||'').trim(); // actual asset name behind the group
   try{
     const base64 = await toBase64(file);
+    console.log('Uploading:', { branch, asset, group: gr.group });
     await postAction({
       action: 'uploadDN',
       sheet: TRACKER_SHEET,
