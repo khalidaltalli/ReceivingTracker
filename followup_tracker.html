@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Follow-up Tracker — Space Planning</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f1117; color: #e2e8f0; font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+    /* ── Header ── */
+    .header { background: #1a1f2e; border-bottom: 0.5px solid rgba(255,255,255,0.07); padding: 0.6rem 1.5rem; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 50; }
+    .header-title { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.3px; text-align: center; }
+    .header-sub { font-size: 12px; color: #94a3b8; text-align: center; margin-top: 2px; }
+    .btn { font-size: 12px; padding: 6px 14px; border-radius: 7px; border: 0.5px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #e2e8f0; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600; transition: all 0.15s; }
+    .user-badge { font-size: 11px; padding: 3px 10px; border-radius: 10px; font-weight: 600; }
+    .badge-khalid { background: rgba(34,211,238,0.12); color: #22d3ee; }
+    .badge-azhar  { background: rgba(167,139,250,0.12); color: #a78bfa; }
+    .badge-eissa  { background: rgba(74,222,128,0.12); color: #4ade80; }
+    .badge-viewer { background: rgba(100,116,139,0.12); color: #94a3b8; }
+
+    /* ── Login ── */
+    .login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .login-card { background: #1a1f2e; border: 0.5px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 2rem; width: 320px; text-align: center; }
+    .login-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .login-card p { font-size: 12px; color: #64748b; margin-bottom: 1.5rem; }
+    .login-select { width: 100%; background: #0f1117; border: 0.5px solid rgba(255,255,255,0.12); color: #e2e8f0; font-size: 13px; padding: 9px 10px; border-radius: 6px; font-family: 'DM Sans', sans-serif; margin-bottom: 10px; }
+    .login-pin { width: 100%; background: #0f1117; border: 0.5px solid rgba(255,255,255,0.12); color: #e2e8f0; font-size: 20px; padding: 9px 10px; border-radius: 6px; font-family: 'DM Mono', monospace; letter-spacing: 6px; text-align: center; margin-bottom: 10px; }
+    .login-pin:focus, .login-select:focus { outline: none; border-color: rgba(34,211,238,0.4); }
+
+    /* ── Summary bar ── */
+    .summary-bar { display: flex; gap: 12px; padding: 0.75rem 1.5rem; border-bottom: 0.5px solid rgba(255,255,255,0.05); flex-wrap: wrap; }
+    .summary-kpi { background: #1a1f2e; border: 0.5px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 8px 16px; display: flex; flex-direction: column; align-items: center; min-width: 100px; }
+    .summary-kpi .val { font-size: 20px; font-weight: 700; font-family: 'DM Mono', monospace; }
+    .summary-kpi .lbl { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+
+    /* ── Filters ── */
+    .filters { padding: 0.75rem 1.5rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-bottom: 0.5px solid rgba(255,255,255,0.05); }
+    .filter-btn { font-size: 11px; padding: 4px 14px; border-radius: 20px; border: 0.5px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+    .filter-btn.active { background: rgba(34,211,238,0.12); border-color: rgba(34,211,238,0.3); color: #22d3ee; }
+    .search-input { background: #1a1f2e; border: 0.5px solid rgba(255,255,255,0.1); color: #e2e8f0; font-size: 11px; padding: 5px 12px; border-radius: 20px; font-family: 'DM Sans', sans-serif; width: 200px; }
+    .search-input:focus { outline: none; border-color: rgba(34,211,238,0.3); }
+    .sort-select { background: #1a1f2e; border: 0.5px solid rgba(255,255,255,0.1); color: #94a3b8; font-size: 11px; padding: 5px 10px; border-radius: 20px; font-family: 'DM Sans', sans-serif; cursor: pointer; margin-left: auto; }
+
+    /* ── Branch grid ── */
+    .branch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; padding: 1.25rem 1.5rem; }
+
+    /* ── Branch pill ── */
+    .branch-pill { background: #1a1f2e; border: 0.5px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 12px; cursor: pointer; position: relative; transition: all 0.15s; display: flex; flex-direction: column; gap: 6px; min-height: 90px; }
+    .branch-pill:hover { border-color: rgba(34,211,238,0.3); background: rgba(34,211,238,0.04); transform: translateY(-1px); }
+    .branch-pill.completed { display: none; }
+    .pill-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .branch-code { font-size: 13px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px; }
+    .status-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+    .sb-receiving { background: rgba(34,211,238,0.15); color: #22d3ee; }
+    .sb-live { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .sb-completed { background: rgba(100,116,139,0.15); color: #64748b; }
+    .pill-stats { display: flex; gap: 4px; flex-wrap: wrap; }
+    .mini-stat { font-size: 9px; padding: 2px 6px; border-radius: 5px; background: rgba(255,255,255,0.05); color: #94a3b8; white-space: nowrap; }
+    .mini-stat.red { background: rgba(248,113,113,0.1); color: #f87171; }
+    .mini-stat.amber { background: rgba(251,191,36,0.1); color: #fbbf24; }
+    .mini-stat.green { background: rgba(74,222,128,0.1); color: #4ade80; }
+    .pill-bottom { display: flex; justify-content: space-between; align-items: center; }
+    .followup-badge { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 8px; cursor: pointer; }
+    .fb-contacting { background: rgba(14,116,144,0.15); color: #22d3ee; border: 0.5px solid rgba(14,116,144,0.3); }
+    .fb-waiting    { background: rgba(251,191,36,0.12); color: #fbbf24; border: 0.5px solid rgba(251,191,36,0.3); }
+    .fb-validated  { background: rgba(74,222,128,0.12); color: #4ade80; border: 0.5px solid rgba(74,222,128,0.3); }
+    .fb-emailsent  { background: rgba(167,139,250,0.12); color: #a78bfa; border: 0.5px solid rgba(167,139,250,0.3); }
+    .fb-none       { background: rgba(100,116,139,0.1); color: #475569; border: 0.5px solid rgba(100,116,139,0.2); }
+    .schedule-tag  { font-size: 9px; color: #475569; }
+    .due-today     { color: #fbbf24; font-weight: 600; }
+
+    /* ── Modal ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 200; padding: 1rem; }
+    .modal-box { background: #1a1f2e; border: 0.5px solid rgba(255,255,255,0.1); border-radius: 12px; width: 680px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+    .modal-header { padding: 1rem 1.25rem; border-bottom: 0.5px solid rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: space-between; }
+    .modal-header h2 { font-size: 16px; font-weight: 700; color: #f1f5f9; }
+    .modal-body { overflow-y: auto; flex: 1; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+    .modal-footer { padding: 0.75rem 1.25rem; border-top: 0.5px solid rgba(255,255,255,0.07); display: flex; gap: 8px; flex-wrap: wrap; }
+    .section-title { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .kpi-card { background: rgba(255,255,255,0.03); border: 0.5px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 12px; text-align: center; }
+    .kpi-card .v { font-size: 20px; font-weight: 700; font-family: 'DM Mono', monospace; }
+    .kpi-card .l { font-size: 10px; color: #64748b; margin-top: 2px; }
+    .dn-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .dn-item { background: rgba(255,255,255,0.02); border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+    .dn-item .dn-name { color: #94a3b8; }
+    .proc-row { background: rgba(255,255,255,0.02); border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 4px; }
+    .note-history { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
+    .note-entry { background: rgba(255,255,255,0.02); border-radius: 6px; padding: 8px 10px; font-size: 11px; }
+    .note-entry .meta { font-size: 10px; color: #475569; margin-bottom: 3px; display: flex; gap: 8px; }
+    .note-entry .text { color: #94a3b8; line-height: 1.5; }
+    .note-input-area { background: #0f1117; border: 0.5px solid rgba(255,255,255,0.1); border-radius: 6px; color: #e2e8f0; font-size: 12px; padding: 8px 10px; font-family: 'DM Sans', sans-serif; width: 100%; resize: vertical; min-height: 60px; }
+    .note-input-area:focus { outline: none; border-color: rgba(34,211,238,0.3); }
+    .status-select { background: #0f1117; border: 0.5px solid rgba(255,255,255,0.1); color: #e2e8f0; font-size: 11px; padding: 5px 8px; border-radius: 6px; font-family: 'DM Sans', sans-serif; }
+    .info-row { display: flex; gap: 8px; font-size: 11px; color: #64748b; }
+    .info-row span { color: #94a3b8; }
+
+    /* ── Toast ── */
+    #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1a1f2e; border: 0.5px solid rgba(74,222,128,0.3); color: #4ade80; font-size: 12px; padding: 8px 16px; border-radius: 8px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
+
+    /* ── Schedule tag ── */
+    .sched-live { color: #f87171; }
+    .sched-receiving { color: #22d3ee; }
+  </style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <h2>📋 Follow-up Tracker</h2>
+    <p>Space Planning & Store Improvement</p>
+    <select id="login-name" class="login-select" onchange="toggleLoginPin()">
+      <option value="">Select name</option>
+      <option value="Khalid">Khalid</option>
+      <option value="Azhar">Azhar</option>
+      <option value="Eissa">Eissa</option>
+      <option value="Viewer">Viewer</option>
+    </select>
+    <div id="pin-wrap">
+      <input type="password" id="login-pin" class="login-pin" maxlength="4" placeholder="••••"
+        onkeydown="if(event.key==='Enter') submitLogin()" />
+    </div>
+    <p id="login-error" style="color:#f87171;font-size:11px;margin:4px 0 8px;display:none;">Incorrect PIN.</p>
+    <button onclick="submitLogin()" style="width:100%;padding:10px;border-radius:6px;background:rgba(34,211,238,0.1);border:0.5px solid rgba(34,211,238,0.3);color:#22d3ee;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Enter</button>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app" style="display:none;">
+
+  <!-- Header -->
+  <div class="header">
+    <div style="display:flex;align-items:center;">
+      <a href="index.html"><img src="logo.png" style="height:60px;object-fit:contain;" alt="Logo" /></a>
+    </div>
+    <div>
+      <div class="header-title">Follow-up Tracker</div>
+      <div class="header-sub" id="last-updated">Loading...</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;">
+      <span id="user-badge" class="user-badge"></span>
+      <button class="btn" onclick="loadData()">↻ Refresh</button>
+      <button class="btn" style="background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.2);color:#f87171;" onclick="signOut()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Summary bar -->
+  <div class="summary-bar">
+    <div class="summary-kpi"><div class="val" id="kpi-total" style="color:#22d3ee;">—</div><div class="lbl">Total Branches</div></div>
+    <div class="summary-kpi"><div class="val" id="kpi-receiving" style="color:#22d3ee;">—</div><div class="lbl">Receiving</div></div>
+    <div class="summary-kpi"><div class="val" id="kpi-live" style="color:#4ade80;">—</div><div class="lbl">Live</div></div>
+    <div class="summary-kpi"><div class="val" id="kpi-validated" style="color:#a78bfa;">—</div><div class="lbl">Validated</div></div>
+    <div class="summary-kpi"><div class="val" id="kpi-due" style="color:#fbbf24;">—</div><div class="lbl">Due This Week</div></div>
+    <div class="summary-kpi" style="margin-left:auto;"><div class="val" id="kpi-avg" style="color:#4ade80;">—</div><div class="lbl">Avg Completion</div></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('Receiving',this)">Receiving</button>
+    <button class="filter-btn" onclick="setFilter('Live',this)">Live</button>
+    <input class="search-input" id="search" placeholder="🔍  Search branch..." oninput="renderGrid()" />
+    <select class="sort-select" id="sort-select" onchange="renderGrid()">
+      <option value="code">Sort: Branch Code</option>
+      <option value="pct">Sort: Completion %</option>
+      <option value="status">Sort: Status</option>
+      <option value="followup">Sort: Follow-up Status</option>
+    </select>
+  </div>
+
+  <!-- Branch grid -->
+  <div class="branch-grid" id="branch-grid">
+    <div style="color:#475569;font-size:13px;padding:2rem;grid-column:1/-1;text-align:center;">Loading branches...</div>
+  </div>
+
+</div>
+
+<!-- ══ BRANCH POPUP ══ -->
+<div class="modal-overlay" id="branch-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h2 id="modal-branch-code"></h2>
+        <div style="display:flex;gap:6px;margin-top:4px;align-items:center;" id="modal-meta"></div>
+      </div>
+      <button onclick="closeModal()" style="background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- KPIs -->
+      <div>
+        <div class="section-title">Receiving Overview</div>
+        <div class="kpi-row">
+          <div class="kpi-card"><div class="v" id="m-pct" style="color:#22d3ee;">—</div><div class="l">Completion</div></div>
+          <div class="kpi-card"><div class="v" id="m-crit" style="color:#f87171;">—</div><div class="l">Critical %</div></div>
+          <div class="kpi-card"><div class="v" id="m-nr" style="color:#f87171;">—</div><div class="l">Not Received</div></div>
+          <div class="kpi-card"><div class="v" id="m-del" style="color:#fbbf24;">—</div><div class="l">Delivered</div></div>
+        </div>
+      </div>
+
+      <!-- D.N. Status -->
+      <div>
+        <div class="section-title">D.N. Status (7 Groups)</div>
+        <div class="dn-grid" id="modal-dn"></div>
+      </div>
+
+      <!-- Procurement -->
+      <div>
+        <div class="section-title">Procurement Requests</div>
+        <div id="modal-proc"><div style="font-size:11px;color:#475569;">No requests.</div></div>
+      </div>
+
+      <!-- Timestamps -->
+      <div>
+        <div class="section-title">Key Dates</div>
+        <div class="info-row" id="modal-dates"></div>
+      </div>
+
+      <!-- Follow-up Status -->
+      <div>
+        <div class="section-title">Follow-up Status</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select class="status-select" id="modal-followup-status" onchange="updateFollowupStatus()">
+            <option value="None">— Set Status —</option>
+            <option value="Contacting">Contacting</option>
+            <option value="Waiting for Validation">Waiting for Validation</option>
+            <option value="Validated">Validated</option>
+            <option value="Email Sent">Email Sent</option>
+          </select>
+          <span style="font-size:11px;color:#475569;" id="modal-schedule-note"></span>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div>
+        <div class="section-title">Follow-up Notes</div>
+        <div class="note-history" id="modal-notes"></div>
+        <textarea class="note-input-area" id="modal-note-input" placeholder="Add a follow-up note..." style="margin-top:8px;"></textarea>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.2);color:#f87171;" onclick="markCompleted()" id="btn-complete">Mark Completed</button>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="btn" onclick="closeModal()">Close</button>
+        <button class="btn" style="background:rgba(34,211,238,0.1);border-color:rgba(34,211,238,0.3);color:#22d3ee;" onclick="saveNote()">💾 Save Note</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const APPS_URL = 'https://script.google.com/macros/s/AKfycbxY3lrOH9WfROO51kJfik2McVOE1MsWtFzsR-G6b8wqqSdTUOTiG-1ONj946YAXSwAzeQ/exec';
+  const PINS = { Khalid:'6969', Azhar:'0000', Eissa:'1234', Viewer: null };
+
+  const DN_GROUPS = [
+    { name:'Freebolt & Heavy Rack', assets:['Freebolt','Heavy Rack','Heavyrack'] },
+    { name:'Sign Board',            assets:['SignBoard','Sign Board'] },
+    { name:'Curtains',              assets:['Curtain'] },
+    { name:'Cold Room',             assets:['Coldroom','Cold Room'] },
+    { name:'Fridges & Freezers',    assets:['1 Door Chiller','2 Door Chiller','3 Door Chiller','1 Door Freezer','2 Door Freezer','3 Door Freezer'] },
+    { name:'Access Points & CCTV',  assets:['Access Points','CCTV'] },
+    { name:'Air Condition',         assets:['Air Condition'] },
+  ];
+
+  const FOLLOWUP_SCHEDULE = { Live:'Sun & Wed', Receiving:'Monday' };
+
+  let currentUser = sessionStorage.getItem('followup_user') || '';
+  let isViewer    = false;
+  let currentFilter = 'all';
+  let currentBranch = null; /* branch code open in modal */
+
+  /* ── Data ── */
+  let branches    = [];   /* [{code, status, receivingDate, liveDate}] */
+  let checklist   = [];   /* all checklist rows */
+  let procData    = {};   /* branchCode -> [{...}] */
+  let followupData= {};   /* branchCode -> {status, notes:[]} */
+
+  /* ══ LOGIN ══ */
+  function toggleLoginPin() {
+    const user = document.getElementById('login-name').value;
+    document.getElementById('pin-wrap').style.display = user === 'Viewer' ? 'none' : 'block';
+  }
+
+  function submitLogin() {
+    const name = document.getElementById('login-name').value;
+    const pin  = document.getElementById('login-pin').value;
+    if (!name) return;
+    if (PINS[name] !== null && PINS[name] !== pin) {
+      document.getElementById('login-error').style.display = 'block';
+      document.getElementById('login-pin').value = '';
+      return;
+    }
+    currentUser = name;
+    isViewer    = name === 'Viewer';
+    sessionStorage.setItem('followup_user', name);
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    const badge = document.getElementById('user-badge');
+    badge.textContent = isViewer ? '👁 Viewer' : name;
+    badge.className = 'user-badge badge-' + name.toLowerCase();
+    loadData();
+  }
+
+  function signOut() {
+    sessionStorage.removeItem('followup_user');
+    location.reload();
+  }
+
+  /* ══ DATA ══ */
+  async function loadData() {
+    document.getElementById('last-updated').textContent = 'Loading...';
+    try {
+      const [bcRes, clRes, fuRes, prRes] = await Promise.all([
+        fetch(`${APPS_URL}?sheet=Branch%20Codes`).then(r=>r.json()),
+        fetch(`${APPS_URL}?sheet=Receiving%20Checklist`).then(r=>r.json()),
+        fetch(`${APPS_URL}?sheet=Follow-up%20Tracker`).then(r=>r.json()).catch(()=>({rows:[]})),
+        fetch(`${APPS_URL}?sheet=Procurement%20Tracking`).then(r=>r.json()).catch(()=>({rows:[]})),
+      ]);
+
+      branches = (bcRes.rows||[])
+        .filter(r=>['Receiving','Live','Completed'].includes(r['Branch Status']))
+        .map(r=>({ code:r['Branch Code'], status:r['Branch Status'], receivingDate:r['Receiving Date']||'', liveDate:r['Live Date']||'' }))
+        .sort((a,b)=>a.code.localeCompare(b.code));
+
+      checklist = clRes.rows||[];
+
+      /* Procurement per branch */
+      procData = {};
+      (prRes.rows||[]).forEach(r=>{ const b=(r['Branch Code']||'').trim(); if(b){if(!procData[b])procData[b]=[];procData[b].push(r);} });
+
+      /* Follow-up data per branch */
+      followupData = {};
+      (fuRes.rows||[]).forEach(r=>{
+        const b=(r['Branch Code']||'').trim();
+        if(!b) return;
+        if(!followupData[b]) followupData[b]={ status:'None', notes:[] };
+        if(r['Type']==='status') followupData[b].status = r['Value']||'None';
+        if(r['Type']==='note')   followupData[b].notes.push({ ts:r['Timestamp']||'', user:r['User']||'', text:r['Value']||'' });
+      });
+
+      document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+      updateSummary();
+      renderGrid();
+    } catch(e) {
+      document.getElementById('last-updated').textContent = 'Error: ' + e.message;
+    }
+  }
+
+  /* ══ SUMMARY ══ */
+  function updateSummary() {
+    const active = branches.filter(b=>b.status!=='Completed');
+    const receiving = active.filter(b=>b.status==='Receiving');
+    const live      = active.filter(b=>b.status==='Live');
+    const validated = active.filter(b=>(followupData[b.code]?.status||'None')==='Validated');
+    /* Due this week */
+    const today = new Date(); const dow = today.getDay(); /* 0=Sun,1=Mon...6=Sat */
+    const dueThisWeek = active.filter(b=>{
+      if(b.status==='Live')      return dow===0||dow===3; /* Sun or Wed */
+      if(b.status==='Receiving') return dow===1;          /* Mon */
+      return false;
+    });
+    /* Avg completion */
+    let totalPct = 0;
+    active.forEach(b=>{
+      const rows=checklist.filter(r=>(r['Branch Code']||'').trim()===b.code);
+      totalPct+=calcPct(rows);
+    });
+    const avg = active.length ? Math.round(totalPct/active.length) : 0;
+
+    document.getElementById('kpi-total').textContent     = active.length;
+    document.getElementById('kpi-receiving').textContent = receiving.length;
+    document.getElementById('kpi-live').textContent      = live.length;
+    document.getElementById('kpi-validated').textContent = validated.length;
+    document.getElementById('kpi-due').textContent       = dueThisWeek.length;
+    document.getElementById('kpi-avg').textContent       = avg + '%';
+  }
+
+  /* ══ GRID ══ */
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderGrid();
+  }
+
+  function calcPct(rows) {
+    const total = rows.filter(r=>r['Asset Status']&&r['Asset Status']!=='None').length;
+    const rec   = rows.filter(r=>r['Asset Status']==='Received').length;
+    return total ? Math.round(rec/total*100) : 0;
+  }
+
+  function renderGrid() {
+    const search = document.getElementById('search').value.toLowerCase();
+    const sort   = document.getElementById('sort-select').value;
+    const grid   = document.getElementById('branch-grid');
+
+    let filtered = branches.filter(b=>{
+      if(b.status==='Completed') return false;
+      if(currentFilter!=='all'&&b.status!==currentFilter) return false;
+      if(search&&!b.code.toLowerCase().includes(search)) return false;
+      return true;
+    });
+
+    /* Sort */
+    if(sort==='pct') {
+      filtered.sort((a,b)=>{
+        const ra=checklist.filter(r=>(r['Branch Code']||'').trim()===a.code);
+        const rb=checklist.filter(r=>(r['Branch Code']||'').trim()===b.code);
+        return calcPct(rb)-calcPct(ra);
+      });
+    } else if(sort==='status') {
+      filtered.sort((a,b)=>a.status.localeCompare(b.status));
+    } else if(sort==='followup') {
+      const order = {'None':0,'Contacting':1,'Email Sent':2,'Waiting for Validation':3,'Validated':4};
+      filtered.sort((a,b)=>(order[followupData[a.code]?.status||'None']||0)-(order[followupData[b.code]?.status||'None']||0));
+    } else {
+      filtered.sort((a,b)=>a.code.localeCompare(b.code));
+    }
+
+    if(!filtered.length) {
+      grid.innerHTML = '<div style="color:#475569;font-size:13px;padding:2rem;grid-column:1/-1;text-align:center;">No branches found.</div>';
+      return;
+    }
+
+    grid.innerHTML = '';
+    filtered.forEach(b=>{
+      const rows   = checklist.filter(r=>(r['Branch Code']||'').trim()===b.code);
+      const pct    = calcPct(rows);
+      const nr     = rows.filter(r=>r['Asset Status']==='Not Received').length;
+      const del    = rows.filter(r=>r['Asset Status']==='Delivered').length;
+      const dnSigned = getDNSigned(rows);
+      const fuStatus = followupData[b.code]?.status||'None';
+      const pctColor = pct>=80?'#4ade80':pct>=50?'#22d3ee':pct>0?'#fbbf24':'#f87171';
+      const sbClass  = b.status==='Live'?'sb-live':'sb-receiving';
+      const fbClass  = {Contacting:'fb-contacting','Waiting for Validation':'fb-waiting',Validated:'fb-validated','Email Sent':'fb-emailsent',None:'fb-none'}[fuStatus]||'fb-none';
+      const sched    = b.status==='Live'?'Sun & Wed':'Mon';
+      const today    = new Date(); const dow=today.getDay();
+      const isDue    = (b.status==='Live'&&(dow===0||dow===3))||(b.status==='Receiving'&&dow===1);
+
+      const pill = document.createElement('div');
+      pill.className = 'branch-pill';
+      pill.dataset.branch = b.code;
+      pill.onclick = () => openModal(b.code);
+      pill.innerHTML = `
+        <div class="pill-top">
+          <div class="branch-code">${b.code}</div>
+          <span class="status-badge ${sbClass}">${b.status}</span>
+        </div>
+        <div class="pill-stats">
+          <span class="mini-stat" style="color:${pctColor};">${pct}%</span>
+          ${nr>0?`<span class="mini-stat red">${nr} NR</span>`:''}
+          ${del>0?`<span class="mini-stat amber">${del} Del</span>`:''}
+          <span class="mini-stat ${dnSigned===7?'green':dnSigned>0?'amber':'red'}">${dnSigned}/7 DN</span>
+        </div>
+        <div class="pill-bottom">
+          <span class="followup-badge ${fbClass}">${fuStatus==='None'?'No Follow-up':fuStatus}</span>
+          <span class="schedule-tag ${isDue?'due-today':''}">${isDue?'📅 Due today':sched}</span>
+        </div>`;
+      grid.appendChild(pill);
+    });
+  }
+
+  function getDNSigned(rows) {
+    return DN_GROUPS.filter(g=>g.assets.some(a=>rows.find(r=>(r['Asset']||'').trim()===a&&r['D.N. Signed']&&r['D.N. Signed'].startsWith('http')))).length;
+  }
+
+  /* ══ MODAL ══ */
+  function openModal(code) {
+    currentBranch = code;
+    const b    = branches.find(x=>x.code===code);
+    const rows = checklist.filter(r=>(r['Branch Code']||'').trim()===code);
+    const fu   = followupData[code]||{status:'None',notes:[]};
+
+    /* Header */
+    document.getElementById('modal-branch-code').textContent = code;
+    const sbClass = b.status==='Live'?'sb-live':'sb-receiving';
+    document.getElementById('modal-meta').innerHTML = `<span class="status-badge ${sbClass}">${b.status}</span>`;
+
+    /* KPIs */
+    const total = rows.filter(r=>r['Asset Status']&&r['Asset Status']!=='None').length||1;
+    const rec   = rows.filter(r=>r['Asset Status']==='Received').length;
+    const nr    = rows.filter(r=>r['Asset Status']==='Not Received').length;
+    const del   = rows.filter(r=>r['Asset Status']==='Delivered').length;
+    const crit  = rows.filter(r=>['Critical','Essential'].includes(r['Priority']));
+    const critR = crit.filter(r=>r['Asset Status']==='Received').length;
+    const critT = crit.length||1;
+    document.getElementById('m-pct').textContent  = Math.round(rec/total*100)+'%';
+    document.getElementById('m-crit').textContent = Math.round(critR/critT*100)+'%';
+    document.getElementById('m-nr').textContent   = nr;
+    document.getElementById('m-del').textContent  = del;
+
+    /* DN Groups */
+    const dnGrid = document.getElementById('modal-dn');
+    dnGrid.innerHTML = DN_GROUPS.map(g=>{
+      const signed   = g.assets.some(a=>rows.find(r=>(r['Asset']||'').trim()===a&&r['D.N. Signed']&&r['D.N. Signed'].startsWith('http')));
+      const unsigned = g.assets.some(a=>rows.find(r=>(r['Asset']||'').trim()===a&&r['D.N. Not Signed']&&r['D.N. Not Signed'].startsWith('http')));
+      const icon  = signed?'✓':unsigned?'📎':'✗';
+      const color = signed?'#4ade80':unsigned?'#fbbf24':'#f87171';
+      return `<div class="dn-item"><span class="dn-name">${g.name}</span><span style="color:${color};font-weight:600;font-size:12px;">${icon}</span></div>`;
+    }).join('');
+
+    /* Procurement */
+    const procs = procData[code]||[];
+    const procEl = document.getElementById('modal-proc');
+    if(procs.length) {
+      const sbMap={'Requested':'sb-requested','PO Created':'sb-po','In Transit':'sb-transit','Delivered':'sb-delivered'};
+      procEl.innerHTML = procs.map(p=>`
+        <div class="proc-row">
+          <span style="color:#e2e8f0;font-weight:600;">${p['Asset Group']||'—'}</span>
+          <span style="color:#64748b;font-size:10px;">${p['Request Number']||'—'}</span>
+          <span class="sb ${sbMap[p['Status']]||''}" style="font-size:10px;">${p['Status']||'—'}</span>
+          <span style="color:#475569;font-size:10px;">ETA: ${p['ETA']||'—'}</span>
+        </div>`).join('');
+    } else { procEl.innerHTML = '<div style="font-size:11px;color:#475569;">No procurement requests.</div>'; }
+
+    /* Dates */
+    document.getElementById('modal-dates').innerHTML =
+      `<div>Receiving Date: <span>${b.receivingDate||'—'}</span></div>
+       <div style="margin-left:12px;">Live Date: <span>${b.liveDate||'—'}</span></div>`;
+
+    /* Follow-up status */
+    document.getElementById('modal-followup-status').value = fu.status||'None';
+    document.getElementById('modal-schedule-note').textContent = `Schedule: ${FOLLOWUP_SCHEDULE[b.status]||'—'}`;
+
+    /* Notes */
+    renderNotes(fu.notes);
+
+    /* Complete button */
+    document.getElementById('btn-complete').style.display = isViewer ? 'none' : 'inline-block';
+    document.getElementById('modal-followup-status').disabled = isViewer;
+
+    document.getElementById('branch-modal').style.display = 'flex';
+  }
+
+  function renderNotes(notes) {
+    const el = document.getElementById('modal-notes');
+    if(!notes||!notes.length) { el.innerHTML = '<div style="font-size:11px;color:#475569;">No notes yet.</div>'; return; }
+    el.innerHTML = [...notes].reverse().slice(0,10).map(n=>`
+      <div class="note-entry">
+        <div class="meta"><span>${n.user||''}</span><span>${n.ts||''}</span></div>
+        <div class="text">${n.text||''}</div>
+      </div>`).join('');
+  }
+
+  function closeModal() {
+    document.getElementById('branch-modal').style.display = 'none';
+    currentBranch = null;
+  }
+
+  /* ══ ACTIONS ══ */
+  async function updateFollowupStatus() {
+    if(isViewer||!currentBranch) return;
+    const status = document.getElementById('modal-followup-status').value;
+    const ts     = new Date().toLocaleString('en-GB');
+    await fetch(APPS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'saveFollowup',branch:currentBranch,type:'status',value:status,user:currentUser,timestamp:ts})});
+    if(!followupData[currentBranch]) followupData[currentBranch]={status:'None',notes:[]};
+    followupData[currentBranch].status = status;
+    renderGrid();
+    showToast('Status updated');
+  }
+
+  async function saveNote() {
+    if(isViewer||!currentBranch) return;
+    const text = document.getElementById('modal-note-input').value.trim();
+    if(!text) return;
+    const ts = new Date().toLocaleString('en-GB');
+    await fetch(APPS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'saveFollowup',branch:currentBranch,type:'note',value:text,user:currentUser,timestamp:ts})});
+    if(!followupData[currentBranch]) followupData[currentBranch]={status:'None',notes:[]};
+    followupData[currentBranch].notes.push({ts,user:currentUser,text});
+    renderNotes(followupData[currentBranch].notes);
+    document.getElementById('modal-note-input').value = '';
+    showToast('Note saved');
+  }
+
+  async function markCompleted() {
+    if(isViewer||!currentBranch) return;
+    if(!confirm(`Mark ${currentBranch} as Completed? It will be hidden from this tracker.`)) return;
+    const ts = new Date().toLocaleString('en-GB');
+    await fetch(APPS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'updateBranchStatus',branch:currentBranch,status:'Completed',user:currentUser,timestamp:ts})});
+    const b = branches.find(x=>x.code===currentBranch);
+    if(b) b.status='Completed';
+    closeModal();
+    updateSummary();
+    renderGrid();
+    showToast(`${currentBranch} marked as Completed`);
+  }
+
+  /* ══ TOAST ══ */
+  let toastTimer;
+  function showToast(msg,err=false) {
+    const t=document.getElementById('toast');
+    t.textContent=msg;
+    t.style.borderColor=err?'rgba(248,113,113,0.3)':'rgba(74,222,128,0.3)';
+    t.style.color=err?'#f87171':'#4ade80';
+    t.style.opacity='1';
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>t.style.opacity='0',3000);
+  }
+
+  /* ══ BOOT ══ */
+  if(currentUser&&PINS[currentUser]!==undefined){
+    isViewer=currentUser==='Viewer';
+    document.getElementById('login-overlay').style.display='none';
+    document.getElementById('app').style.display='block';
+    const badge=document.getElementById('user-badge');
+    badge.textContent=isViewer?'👁 Viewer':currentUser;
+    badge.className='user-badge badge-'+currentUser.toLowerCase();
+    loadData();
+  }
+</script>
+</body>
+</html>
