@@ -103,11 +103,29 @@
     /* ── Schedule tag ── */
     .sched-live { color: #f87171; }
     .sched-receiving { color: #22d3ee; }
+    .qty-row { display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-radius:6px;background:rgba(255,255,255,0.02);margin-bottom:4px;font-size:11px; }
+    .qty-label { color:#94a3b8; }
+    .qty-vals  { font-family:'DM Mono',monospace;font-size:11px; }
+    .qty-diff-short { color:#f87171;font-weight:700; }
+    .qty-diff-extra { color:#22d3ee;font-weight:700; }
+    .qty-diff-ok    { color:#4ade80; }
   </style>
 </head>
 <body>
 
-<!-- ══ LOGIN ══ -->
+<!-- ══ NOTES ALL POPUP ══ -->
+<div class="modal-overlay" id="notes-all-modal" style="z-index:300;">
+  <div class="modal-box" style="width:520px;">
+    <div class="modal-header">
+      <h2>📝 All Follow-up Notes</h2>
+      <button onclick="document.getElementById('notes-all-modal').style.display='none';" style="background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div class="modal-body" style="padding:1rem 1.25rem;">
+      <div id="notes-all-list" class="note-history" style="max-height:500px;"></div>
+    </div>
+  </div>
+</div>
+
 <div class="login-overlay" id="login-overlay">
   <div class="login-card">
     <h2>📋 Follow-up Tracker</h2>
@@ -201,6 +219,12 @@
         </div>
       </div>
 
+      <!-- Qty Discrepancy -->
+      <div>
+        <div class="section-title">Qty — Shortage & Extra</div>
+        <div id="modal-qty"><div style="font-size:11px;color:#475569;">Loading...</div></div>
+      </div>
+
       <!-- D.N. Status -->
       <div>
         <div class="section-title">D.N. Status (7 Groups)</div>
@@ -237,7 +261,7 @@
       <!-- Notes -->
       <div>
         <div class="section-title">Follow-up Notes</div>
-        <div class="note-history" id="modal-notes"></div>
+        <div id="modal-notes-preview"></div>
         <textarea class="note-input-area" id="modal-note-input" placeholder="Add a follow-up note..." style="margin-top:8px;"></textarea>
       </div>
 
@@ -268,6 +292,17 @@
     { name:'Air Condition',         assets:['Air Condition'] },
   ];
 
+  const QTY_ITEMS = [
+    {label:'Freebolt',   req:'Freebolt Req',   rec:'Freebolt Rec'},
+    {label:'Heavy Rack', req:'Heavy Rack Req',  rec:'Heavy Rack Rec'},
+    {label:'1D Fridge',  req:'1D Fridge Req',   rec:'1D Fridge Rec'},
+    {label:'2D Fridge',  req:'2D Fridge Req',   rec:'2D Fridge Rec'},
+    {label:'3D Fridge',  req:'3D Fridge Req',   rec:'3D Fridge Rec'},
+    {label:'1D Freezer', req:'1D Freezer Req',  rec:'1D Freezer Rec'},
+    {label:'2D Freezer', req:'2D Freezer Req',  rec:'2D Freezer Rec'},
+    {label:'3D Freezer', req:'3D Freezer Req',  rec:'3D Freezer Rec'},
+  ];
+
   const FOLLOWUP_SCHEDULE = { Live:'Sun & Wed', Receiving:'Monday' };
 
   let currentUser = sessionStorage.getItem('followup_user') || '';
@@ -276,10 +311,11 @@
   let currentBranch = null; /* branch code open in modal */
 
   /* ── Data ── */
-  let branches    = [];   /* [{code, status, receivingDate, liveDate}] */
-  let checklist   = [];   /* all checklist rows */
-  let procData    = {};   /* branchCode -> [{...}] */
-  let followupData= {};   /* branchCode -> {status, notes:[]} */
+  let branches    = [];
+  let checklist   = [];
+  let procData    = {};
+  let qtyData     = {};
+  let followupData= {};
 
   /* ══ LOGIN ══ */
   function toggleLoginPin() {
@@ -316,11 +352,12 @@
   async function loadData() {
     document.getElementById('last-updated').textContent = 'Loading...';
     try {
-      const [bcRes, clRes, fuRes, prRes] = await Promise.all([
+      const [bcRes, clRes, fuRes, prRes, qtyRes] = await Promise.all([
         fetch(`${APPS_URL}?sheet=Branch%20Codes`).then(r=>r.json()),
         fetch(`${APPS_URL}?sheet=Receiving%20Checklist`).then(r=>r.json()),
         fetch(`${APPS_URL}?sheet=Follow-up%20Tracker`).then(r=>r.json()).catch(()=>({rows:[]})),
         fetch(`${APPS_URL}?sheet=Procurement%20Tracking`).then(r=>r.json()).catch(()=>({rows:[]})),
+        fetch(`${APPS_URL}?sheet=Fridge%20%26%20Shelf%20Quantities`).then(r=>r.json()).catch(()=>({rows:[]})),
       ]);
 
       branches = (bcRes.rows||[])
@@ -333,6 +370,10 @@
       /* Procurement per branch */
       procData = {};
       (prRes.rows||[]).forEach(r=>{ const b=(r['Branch Code']||'').trim(); if(b){if(!procData[b])procData[b]=[];procData[b].push(r);} });
+
+      /* Qty per branch */
+      qtyData = {};
+      (qtyRes.rows||[]).forEach(r=>{ const b=(r['Branch Code']||'').trim(); if(b) qtyData[b]=r; });
 
       /* Follow-up data per branch */
       followupData = {};
@@ -524,12 +565,32 @@
       `<div>Receiving Date: <span>${b.receivingDate||'—'}</span></div>
        <div style="margin-left:12px;">Live Date: <span>${b.liveDate||'—'}</span></div>`;
 
-    /* Follow-up status */
-    document.getElementById('modal-followup-status').value = fu.status||'None';
+    /* Qty discrepancy */
+    const fq = qtyData[code]||{};
+    const qtyRows = QTY_ITEMS.map(item=>{
+      const req=parseInt(fq[item.req]||0)||0, rec=parseInt(fq[item.rec]||0)||0, diff=rec-req;
+      return {label:item.label, req, rec, diff};
+    }).filter(r=>r.req>0);
+    const qtyEl = document.getElementById('modal-qty');
+    if(qtyRows.length){
+      const disc = qtyRows.filter(r=>r.diff!==0);
+      if(disc.length){
+        qtyEl.innerHTML = disc.map(r=>`
+          <div class="qty-row">
+            <span class="qty-label">${r.label}</span>
+            <span class="qty-vals">${r.req} Req / ${r.rec} Rec</span>
+            <span class="${r.diff<0?'qty-diff-short':'qty-diff-extra'}">${r.diff>0?'+':''}${r.diff}</span>
+          </div>`).join('');
+      } else {
+        qtyEl.innerHTML = '<div style="font-size:11px;color:#4ade80;padding:4px 0;">✓ No qty discrepancies.</div>';
+      }
+    } else {
+      qtyEl.innerHTML = '<div style="font-size:11px;color:#475569;">No qty data.</div>';
+    }
     document.getElementById('modal-schedule-note').textContent = `Schedule: ${FOLLOWUP_SCHEDULE[b.status]||'—'}`;
 
-    /* Notes */
-    renderNotes(fu.notes);
+    /* Notes — last note preview + view all button */
+    renderNotesPreview(fu.notes);
 
     /* Complete button */
     document.getElementById('btn-complete').style.display = isViewer ? 'none' : 'inline-block';
@@ -538,14 +599,32 @@
     document.getElementById('branch-modal').style.display = 'flex';
   }
 
-  function renderNotes(notes) {
-    const el = document.getElementById('modal-notes');
-    if(!notes||!notes.length) { el.innerHTML = '<div style="font-size:11px;color:#475569;">No notes yet.</div>'; return; }
-    el.innerHTML = [...notes].reverse().slice(0,10).map(n=>`
+  function renderNotesPreview(notes) {
+    const el = document.getElementById('modal-notes-preview');
+    if(!notes||!notes.length) {
+      el.innerHTML = '<div style="font-size:11px;color:#475569;padding:4px 0;">No notes yet.</div>';
+      return;
+    }
+    const sorted = [...notes].reverse();
+    const last   = sorted[0];
+    const rest   = sorted.length - 1;
+    el.innerHTML = `
+      <div class="note-entry">
+        <div class="meta"><span>${last.user||''}</span><span>${last.ts||''}</span></div>
+        <div class="text">${last.text||''}</div>
+      </div>
+      ${rest > 0 ? `<button onclick="openAllNotes()" style="font-size:10px;margin-top:6px;padding:3px 10px;border-radius:6px;background:rgba(34,211,238,0.08);border:0.5px solid rgba(34,211,238,0.2);color:#22d3ee;cursor:pointer;font-family:'DM Sans',sans-serif;">▼ View ${rest} more note${rest>1?'s':''}</button>` : ''}`;
+  }
+
+  function openAllNotes() {
+    const notes = followupData[currentBranch]?.notes || [];
+    const sorted = [...notes].reverse();
+    document.getElementById('notes-all-list').innerHTML = sorted.map(n=>`
       <div class="note-entry">
         <div class="meta"><span>${n.user||''}</span><span>${n.ts||''}</span></div>
         <div class="text">${n.text||''}</div>
       </div>`).join('');
+    document.getElementById('notes-all-modal').style.display = 'flex';
   }
 
   function closeModal() {
@@ -575,7 +654,7 @@
       body:JSON.stringify({action:'saveFollowup',branch:currentBranch,type:'note',value:text,user:currentUser,timestamp:ts})});
     if(!followupData[currentBranch]) followupData[currentBranch]={status:'None',notes:[]};
     followupData[currentBranch].notes.push({ts,user:currentUser,text});
-    renderNotes(followupData[currentBranch].notes);
+    renderNotesPreview(followupData[currentBranch].notes);
     document.getElementById('modal-note-input').value = '';
     showToast('Note saved');
   }
